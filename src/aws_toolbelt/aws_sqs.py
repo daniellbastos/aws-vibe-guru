@@ -1,7 +1,12 @@
+import configparser
 import datetime
+import os.path
 
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
+
+ONE_DAY_IN_SECONDS = 86400
+ONE_HOUR_IN_SECONDS = 3600
 
 
 def read_aws_credentials():
@@ -11,15 +16,11 @@ def read_aws_credentials():
         dict: Dictionary containing access_key, secret_key, and region
 
     """
-    import configparser
-    import os.path
-
     credentials_file = os.path.expanduser("~/.aws/credentials")
     if os.path.exists(credentials_file):
         config = configparser.ConfigParser()
         config.read(credentials_file)
 
-        # Use default profile if exists
         if "default" in config.sections():
             return {
                 "access_key": config.get("default", "aws_access_key_id", fallback=""),
@@ -118,28 +119,23 @@ def get_queue_oldest_message(sqs_client, queue_url, days=7):
         ValueError: When AWS API call fails
     """
     try:
-        # Create CloudWatch client
         cloudwatch = boto3.client("cloudwatch")
 
-        # Get queue name from URL
         queue_name = queue_url.split("/")[-1]
 
-        # Get metrics for the last N days
         response = cloudwatch.get_metric_statistics(
             Namespace="AWS/SQS",
             MetricName="ApproximateAgeOfOldestMessage",
             Dimensions=[{"Name": "QueueName", "Value": queue_name}],
             StartTime=datetime.datetime.utcnow() - datetime.timedelta(days=days),
             EndTime=datetime.datetime.utcnow(),
-            Period=3600,  # 1 hour in seconds
+            Period=ONE_HOUR_IN_SECONDS,
             Statistics=["Maximum"],
         )
 
-        # Process the data
         datapoints = response.get("Datapoints", [])
         datapoints.sort(key=lambda x: x["Timestamp"])
 
-        # Convert seconds to a more readable format
         def format_age(seconds):
             days = seconds // 86400
             hours = (seconds % 86400) // 3600
@@ -169,7 +165,7 @@ def get_queue_oldest_message(sqs_client, queue_url, days=7):
         raise ValueError(f"Failed to get queue age metrics: {e}") from e
 
 
-def analyze_queue_volume(sqs_client, queue_url, days=15):
+def analyze_queue_volume(queue_url, days=15):
     """Analyze message volume trends for a queue.
 
     Args:
@@ -191,33 +187,26 @@ def analyze_queue_volume(sqs_client, queue_url, days=15):
         ValueError: When AWS API call fails
     """
     try:
-        # Create CloudWatch client
         cloudwatch = boto3.client("cloudwatch")
-
-        # Get queue name from URL
         queue_name = queue_url.split("/")[-1]
 
-        # Get metrics for the last N days
         response = cloudwatch.get_metric_statistics(
             Namespace="AWS/SQS",
             MetricName="NumberOfMessagesReceived",
             Dimensions=[{"Name": "QueueName", "Value": queue_name}],
             StartTime=datetime.datetime.utcnow() - datetime.timedelta(days=days),
             EndTime=datetime.datetime.utcnow(),
-            Period=86400,  # 1 day in seconds
+            Period=ONE_DAY_IN_SECONDS,
             Statistics=["Sum"],
         )
 
-        # Process the data
         datapoints = response.get("Datapoints", [])
         datapoints.sort(key=lambda x: x["Timestamp"])
 
-        # Prepare daily data
         daily_data = [
             {"date": point["Timestamp"].strftime("%Y-%m-%d"), "value": int(point["Sum"])} for point in datapoints
         ]
 
-        # Find max and second max
         if len(daily_data) < 2:
             return {
                 "daily_data": daily_data,
@@ -229,27 +218,22 @@ def analyze_queue_volume(sqs_client, queue_url, days=15):
                 "volume_increase_percent": 100 if daily_data else 0,
             }
 
-        # Sort by volume
         volume_sorted = sorted(daily_data, key=lambda x: x["value"], reverse=True)
         max_day = volume_sorted[0]
         second_max_day = volume_sorted[1]
 
-        # Calculate difference and percentage with second highest
         volume_diff = max_day["value"] - second_max_day["value"]
         volume_percent = (volume_diff / second_max_day["value"] * 100) if second_max_day["value"] > 0 else 100
 
-        # Calculate mean and median
         all_volumes = [day["value"] for day in daily_data]
         mean_volume = sum(all_volumes) / len(all_volumes)
 
-        # Calculate median
         sorted_volumes = sorted(all_volumes)
         mid = len(sorted_volumes) // 2
         median_volume = sorted_volumes[mid]
         if len(sorted_volumes) % 2 == 0:
             median_volume = (sorted_volumes[mid - 1] + sorted_volumes[mid]) / 2
 
-        # Calculate differences from mean and median
         mean_diff = max_day["value"] - mean_volume
         mean_percent = (mean_diff / mean_volume * 100) if mean_volume > 0 else 100
 
@@ -276,7 +260,7 @@ def analyze_queue_volume(sqs_client, queue_url, days=15):
         raise ValueError(f"Failed to analyze queue volume: {e}") from e
 
 
-def get_queue_metrics(sqs_client, queue_url, days=7):
+def get_queue_metrics(queue_url, days=7):
     """Get CloudWatch metrics for a specific queue.
 
     Args:
@@ -291,24 +275,20 @@ def get_queue_metrics(sqs_client, queue_url, days=7):
         ValueError: When AWS API call fails
     """
     try:
-        # Create CloudWatch client
         cloudwatch = boto3.client("cloudwatch")
 
-        # Get queue name from URL
         queue_name = queue_url.split("/")[-1]
 
-        # Get metrics for the last N days
         response = cloudwatch.get_metric_statistics(
             Namespace="AWS/SQS",
             MetricName="NumberOfMessagesReceived",
             Dimensions=[{"Name": "QueueName", "Value": queue_name}],
             StartTime=datetime.datetime.utcnow() - datetime.timedelta(days=days),
             EndTime=datetime.datetime.utcnow(),
-            Period=86400,  # 1 day in seconds
+            Period=ONE_DAY_IN_SECONDS,
             Statistics=["Sum"],
         )
 
-        # Process the data
         datapoints = response.get("Datapoints", [])
         datapoints.sort(key=lambda x: x["Timestamp"])
 
@@ -344,10 +324,8 @@ def get_queue_attributes(sqs_client, queue_url):
     try:
         response = sqs_client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])
 
-        # Get raw attributes
         attributes = response.get("Attributes", {})
 
-        # Convert some attributes to more readable format
         friendly_attributes = {
             "Created": attributes.get("CreatedTimestamp", "N/A"),
             "Messages Available": attributes.get("ApproximateNumberOfMessages", "N/A"),
