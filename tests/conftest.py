@@ -6,7 +6,7 @@ def env_vars():
     return {
         "AWS_BEARER_TOKEN_BEDROCK_ACCESS_KEY": "test_access_key",
         "AWS_BEARER_TOKEN_BEDROCK_SECRET_KEY": "test_secret_key",
-        "AWS_DEFAULT_REGION": "us-east-1"
+        "AWS_DEFAULT_REGION": "us-east-1",
     }
 
 
@@ -24,13 +24,14 @@ def mocked_read_credentials(mocker):
 def mocked_sqs_client(mocker):
     return mocker.patch("aws_toolbelt.aws_sqs.create_sqs_connection")
 
+
 @pytest.fixture()
 def mocked_sqs_client_with_queues(mocker):
     mock_client = mocker.Mock()
     mock_client.list_queues.return_value = {
         "QueueUrls": [
             "https://sqs.us-east-1.amazonaws.com/123456789012/queue1",
-            "https://sqs.us-east-1.amazonaws.com/123456789012/queue2"
+            "https://sqs.us-east-1.amazonaws.com/123456789012/queue2",
         ]
     }
     return mock_client

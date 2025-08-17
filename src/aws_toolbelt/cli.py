@@ -1,7 +1,6 @@
 import typer
 from rich.console import Console
 
-from aws_toolbelt import __version__
 from aws_toolbelt.aws_sqs import (
     analyze_queue_volume,
     get_queue_attributes,
@@ -22,7 +21,6 @@ app = typer.Typer(
     add_completion=True,
 )
 console = Console()
-
 
 
 @app.command()
@@ -132,10 +130,7 @@ def sqs_get_metrics(
 
     console.print(Text("\nDaily breakdown:", style="bold"))
     breakdown_lines = create_daily_breakdown(
-        data=metrics["daily_data"],
-        value_key="value",
-        date_key="date",
-        message_suffix="messages"
+        data=metrics["daily_data"], value_key="value", date_key="date", message_suffix="messages"
     )
     for line in breakdown_lines:
         console.print(line)
@@ -143,10 +138,7 @@ def sqs_get_metrics(
     console.print(Text("\nMessage Volume Chart:", style="bold"))
 
     graph_lines = create_bar_chart(
-        data=metrics["daily_data"],
-        value_key="value",
-        label_key="date",
-        title="Message Volume Chart"
+        data=metrics["daily_data"], value_key="value", label_key="date", title="Message Volume Chart"
     )
 
     console.print()
@@ -247,20 +239,14 @@ def sqs_analyze_volume(
 
         console.print(Text("\nDaily breakdown:", style="bold"))
         breakdown_lines = create_daily_breakdown(
-            data=analysis["daily_data"],
-            value_key="value",
-            date_key="date",
-            message_suffix="messages"
+            data=analysis["daily_data"], value_key="value", date_key="date", message_suffix="messages"
         )
         for line in breakdown_lines:
             console.print(line)
 
         console.print(Text("\nMessage Volume Chart:", style="bold"))
         graph_lines = create_bar_chart(
-            data=analysis["daily_data"],
-            value_key="value",
-            label_key="date",
-            title="Message Volume Chart"
+            data=analysis["daily_data"], value_key="value", label_key="date", title="Message Volume Chart"
         )
 
         console.print()

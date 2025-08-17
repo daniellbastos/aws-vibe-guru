@@ -1,14 +1,10 @@
 import os
 from unittest.mock import Mock, patch
 
-import pytest
-from botocore.exceptions import ClientError, NoCredentialsError
-
 from aws_toolbelt.aws_sqs import create_sqs_connection, list_sqs_queues, read_aws_credentials
 
 
 def test_read_credentials_from_environment_variables(env_vars):
-
     with patch.dict(os.environ, env_vars):
         credentials = read_aws_credentials()
 
@@ -31,7 +27,7 @@ def test_create_connection_with_environment_variables(mocked_boto_client, mocked
     credentials = {
         "access_key": env_vars["AWS_ACCESS_KEY_ID"],
         "secret_key": env_vars["AWS_SECRET_ACCESS_KEY"],
-        "region": env_vars["AWS_DEFAULT_REGION"]
+        "region": env_vars["AWS_DEFAULT_REGION"],
     }
     mocked_read_credentials.return_value = credentials
     mock_client = Mock()
@@ -41,10 +37,7 @@ def test_create_connection_with_environment_variables(mocked_boto_client, mocked
 
     assert client == mock_client
     mocked_boto_client.assert_called_once_with(
-        "sqs",
-        aws_access_key_id="test_access_key",
-        aws_secret_access_key="test_secret_key",
-        region_name="us-east-1"
+        "sqs", aws_access_key_id="test_access_key", aws_secret_access_key="test_secret_key", region_name="us-east-1"
     )
 
 
@@ -53,20 +46,15 @@ def test_create_connection_with_profile(mocked_boto_client, mocked_read_credenti
     mock_client = Mock()
     mocked_boto_client.return_value = mock_client
 
-    client = create_sqs_connection(
-        access_key="custom_access_key",
-        secret_key="custom_secret_key",
-        region="us-west-2"
-    )
+    client = create_sqs_connection(access_key="custom_access_key", secret_key="custom_secret_key", region="us-west-2")
 
     assert client == mock_client
     mocked_boto_client.assert_called_once_with(
         "sqs",
         aws_access_key_id="custom_access_key",
         aws_secret_access_key="custom_secret_key",
-        region_name="us-west-2"
+        region_name="us-west-2",
     )
-
 
 
 def test_list_queues_success(mocked_sqs_client_with_queues):
@@ -83,12 +71,11 @@ def test_list_queues_success(mocked_sqs_client_with_queues):
 
     mocked_sqs_client_with_queues.list_queues.assert_called_once_with(MaxResults=1000)
 
+
 def test_list_queues_with_prefix(mocker):
     mock_client = mocker.Mock()
     mock_client.list_queues.return_value = {
-        "QueueUrls": [
-            "https://sqs.us-west-2.amazonaws.com/123456789012/prod-queue"
-        ]
+        "QueueUrls": ["https://sqs.us-west-2.amazonaws.com/123456789012/prod-queue"]
     }
 
     queues = list_sqs_queues(mock_client, queue_name_prefix="prod-")
@@ -97,7 +84,4 @@ def test_list_queues_with_prefix(mocker):
     assert queues[0]["name"] == "prod-queue"
     assert queues[0]["region"] == "us-west-2"
 
-    mock_client.list_queues.assert_called_once_with(
-        MaxResults=1000,
-        QueueNamePrefix="prod-"
-    )
+    mock_client.list_queues.assert_called_once_with(MaxResults=1000, QueueNamePrefix="prod-")
