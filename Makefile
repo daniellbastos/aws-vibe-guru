@@ -1,12 +1,6 @@
 run:
 	uv run python -m aws_toolbelt.cli $(CMD) $(ARGS)
 
-hello:
-	uv run python -m aws_toolbelt.cli hello
-
-hello-name:
-	uv run python -m aws_toolbelt.cli --name "Developer"
-
 # Development commands
 lint:
 	uv run ruff check src/

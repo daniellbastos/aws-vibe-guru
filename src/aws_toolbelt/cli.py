@@ -4,7 +4,6 @@ from rich.console import Console
 from aws_toolbelt import __version__
 from aws_toolbelt.aws_sqs import (
     analyze_queue_volume,
-    create_sqs_connection,
     get_queue_attributes,
     get_queue_metrics,
     get_queue_oldest_message,
@@ -12,6 +11,7 @@ from aws_toolbelt.aws_sqs import (
 )
 from aws_toolbelt.cli_helpers import panel as gui_panel
 from aws_toolbelt.cli_helpers import text as gui_text
+from aws_toolbelt.cli_helpers import create_bar_chart
 
 app = typer.Typer(
     name="aws-toolbelt",
@@ -20,22 +20,6 @@ app = typer.Typer(
 )
 console = Console()
 
-
-@app.command()
-def hello(
-    name: str = typer.Option("World", "--name", "-n", help="Name to greet"),
-) -> None:
-    panel_content = gui_text(f"Hello, {name}!")
-    panel = gui_panel(panel_content, "AWS Toolbelt Greeting")
-    console.print(panel)
-
-    info_text = gui_text("")
-    info_text.append("This is AWS Toolbelt v", style="dim")
-    info_text.append(__version__, style="bold")
-    info_text.append(" - Your AWS metrics extraction tool!", style="dim")
-
-    console.print("\n")
-    console.print(info_text, justify="center")
 
 
 @app.command()
@@ -46,8 +30,7 @@ def sqs_list_queues(
     panel = gui_panel(panel_content, "AWS SQS Queues")
     console.print(panel)
 
-    sqs_client = create_sqs_connection()
-    queues = list_sqs_queues(sqs_client, queue_name_prefix)
+    queues = list_sqs_queues(queue_name_prefix)
 
     for queue in queues:
         queue_text = f"Name: {queue['name']}\nURL: {queue['url']}"
@@ -63,9 +46,7 @@ def sqs_get_attributes(
     panel = gui_panel(panel_content, "AWS SQS Queue Attributes")
     console.print(panel)
 
-    sqs_client = create_sqs_connection()
-
-    queues = list_sqs_queues(sqs_client)
+    queues = list_sqs_queues()
     queue_url = None
     for queue in queues:
         if queue["name"] == queue_name:
@@ -76,7 +57,7 @@ def sqs_get_attributes(
         console.print(gui_text(f"Queue '{queue_name}' not found", style="bold red"))
         return
 
-    attributes = get_queue_attributes(sqs_client, queue_url)
+    attributes = get_queue_attributes(queue_url)
 
     for key, value in attributes.items():
         console.print(gui_text(f"{key}: {value}"))
@@ -92,9 +73,7 @@ def sqs_get_metrics(
     panel = gui_panel(panel_content, "AWS SQS Queue Metrics")
     console.print(panel)
 
-    sqs_client = create_sqs_connection()
-
-    queues = list_sqs_queues(sqs_client)
+    queues = list_sqs_queues()
     queue_url = None
     for queue in queues:
         if queue["name"] == queue_name:
@@ -105,7 +84,7 @@ def sqs_get_metrics(
         console.print(gui_text(f"Queue '{queue_name}' not found", style="bold red"))
         return
 
-    metrics = get_queue_metrics(sqs_client, queue_url, days)
+    metrics = get_queue_metrics(queue_url, days)
 
     console.print(gui_text(f"\nTotal messages received: {metrics['total']:,}", style="bold blue"))
 
@@ -115,68 +94,12 @@ def sqs_get_metrics(
 
     console.print(gui_text("\nMessage Volume Chart:", style="bold"))
 
-    max_value = max(day["value"] for day in metrics["daily_data"])
-    if max_value == 0:
-        max_value = 1
-
-    height = 8
-    scale_factor = height / max_value
-
-    date_width = 8
-    y_axis_width = 10
-    graph_width = len(metrics["daily_data"]) * date_width
-
-    bars = []
-    dates = []
-    for day in metrics["daily_data"]:
-        date = day["date"].split("-")[1:]
-        date_label = f"{date[0]}-{date[1]}"
-        dates.append(date_label)
-
-        bar_height = int(day["value"] * scale_factor)
-        if day["value"] > 0 and bar_height == 0:
-            bar_height = 1
-
-        bar = []
-        for h in range(height):
-            if h >= (height - bar_height):
-                bar.append("█")
-            else:
-                bar.append(" ")
-        bars.append(bar)
-
-    graph_lines = []
-
-    max_value / 4
-    for i in range(height):
-        y_index = height - i - 1
-        if y_index == height - 1:
-            y_value = f"{int(max_value):,} ┬"
-        elif y_index == 0:
-            y_value = f"{0:,} ┴"
-        elif y_index % 2 == 0:
-            y_value = f"{int((y_index / height) * max_value):,} ┤"
-        else:
-            y_value = " " * (y_axis_width - 2) + "│"
-
-        bar_line = ""
-        for bar in bars:
-            bar_line += bar[i] + " " * (date_width - 1)
-
-        graph_lines.append(f"{y_value:>{y_axis_width}}{bar_line}")
-
-    x_axis = "─" * graph_width
-    graph_lines.append(f"{' ' * (y_axis_width - 1)}└{x_axis}")
-
-    x_labels = ""
-    for date in dates:
-        x_labels += f"{date:<{date_width}}"
-    graph_lines.append(f"{' ' * y_axis_width}{x_labels}")
-
-    values = ""
-    for day in metrics["daily_data"]:
-        values += f"({day['value']:,})" + " " * (date_width - len(f"({day['value']:,})"))
-    graph_lines.append(f"{' ' * y_axis_width}{values}")
+    graph_lines = create_bar_chart(
+        data=metrics["daily_data"],
+        value_key="value",
+        label_key="date",
+        title="Message Volume Chart"
+    )
 
     console.print()
     for line in graph_lines:
@@ -193,9 +116,7 @@ def sqs_get_oldest_message(
     panel = gui_panel(panel_content, "AWS SQS Queue Message Age")
     console.print(panel)
 
-    sqs_client = create_sqs_connection()
-
-    queues = list_sqs_queues(sqs_client)
+    queues = list_sqs_queues()
     queue_url = None
     for queue in queues:
         if queue["name"] == queue_name:
@@ -206,7 +127,7 @@ def sqs_get_oldest_message(
         console.print(gui_text(f"Queue '{queue_name}' not found", style="bold red"))
         return
 
-    metrics = get_queue_oldest_message(sqs_client, queue_url, days)
+    metrics = get_queue_oldest_message(queue_url, days)
 
     console.print(gui_text("\nSummary:", style="bold"))
     console.print(gui_text(f"Current oldest message age: {metrics['current_max_age']}", style="bold blue"))
@@ -223,8 +144,7 @@ def sqs_analyze_volume(
     panel = gui_panel(panel_content, "AWS SQS Queue Volume Analysis")
     console.print(panel)
 
-    sqs_client = create_sqs_connection()
-    all_queues = list_sqs_queues(sqs_client)
+    all_queues = list_sqs_queues()
 
     map_queue_url = {queue["name"]: queue["url"] for queue in all_queues if queue["name"] in queue_names}
 
@@ -235,11 +155,32 @@ def sqs_analyze_volume(
             console.print(gui_text(f"\nQueue '{queue_name}' not found", style="bold red"))
             continue
 
-        analysis = analyze_queue_volume(sqs_client, queue_url, days)
+        analysis = analyze_queue_volume(queue_url, days)
 
         console.print()
         console.print(gui_text(f"Queue: {queue_name}", style="bold green"))
         console.print(gui_text("─" * (len(queue_name) + 7), style="dim"))
+
+        total_messages = sum(day["value"] for day in analysis["daily_data"])
+        console.print(gui_text(f"Total messages received: {total_messages:,}", style="bold blue"))
+
+        console.print(gui_text("\nDaily breakdown:", style="bold"))
+        for day in analysis["daily_data"]:
+            console.print(gui_text(f"{day['date']}: {day['value']:,} messages"))
+
+        console.print(gui_text("\nMessage Volume Chart:", style="bold"))
+        graph_lines = create_bar_chart(
+            data=analysis["daily_data"],
+            value_key="value",
+            label_key="date",
+            title="Message Volume Chart"
+        )
+
+        console.print()
+        for line in graph_lines:
+            console.print(gui_text(line, style="dim" if "└" in line or not any(c in "┬┤┴│" for c in line) else None))
+
+        console.print()
         console.print(gui_text("Volume Analysis:", style="bold"))
 
         console.print(gui_text("• Peak Volume Day:", style="bold blue"))

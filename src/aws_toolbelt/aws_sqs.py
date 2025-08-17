@@ -70,7 +70,7 @@ def create_sqs_connection(access_key=None, secret_key=None, region=None):
         raise ValueError(f"Failed to connect to AWS SQS: {e}") from e
 
 
-def list_sqs_queues(sqs_client, queue_name_prefix=None, max_results=1000):
+def list_sqs_queues(queue_name_prefix=None, max_results=1000):
     """List all SQS queues with optional filtering.
 
     Args:
@@ -86,6 +86,7 @@ def list_sqs_queues(sqs_client, queue_name_prefix=None, max_results=1000):
         ValueError: When AWS API call fails
     """
     try:
+        sqs_client = create_sqs_connection()
         kwargs = {"MaxResults": min(max_results, 1000)}
         if queue_name_prefix:
             kwargs["QueueNamePrefix"] = queue_name_prefix
@@ -104,7 +105,50 @@ def list_sqs_queues(sqs_client, queue_name_prefix=None, max_results=1000):
         raise ValueError(f"Failed to list SQS queues: {e}") from e
 
 
-def get_queue_oldest_message(sqs_client, queue_url, days=7):
+def get_queue_attributes(queue_url):
+    """Get all attributes of a specific queue.
+
+    Args:
+        sqs_client: boto3 SQS client object
+        queue_url: The URL of the queue to get attributes for
+
+    Returns:
+        dict: Dictionary containing queue attributes with friendly names and values
+
+    Raises:
+        ValueError: When AWS API call fails
+    """
+    try:
+        sqs_client = create_sqs_connection()
+        response = sqs_client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])
+
+        attributes = response.get("Attributes", {})
+
+        friendly_attributes = {
+            "Created": attributes.get("CreatedTimestamp", "N/A"),
+            "Messages Available": attributes.get("ApproximateNumberOfMessages", "N/A"),
+            "Messages In Flight": attributes.get("ApproximateNumberOfMessagesNotVisible", "N/A"),
+            "Messages Delayed": attributes.get("ApproximateNumberOfMessagesDelayed", "N/A"),
+            "Message Retention Period (days)": str(int(attributes.get("MessageRetentionPeriod", 0)) / 86400),
+            "Maximum Message Size (KB)": str(int(attributes.get("MaximumMessageSize", 0)) / 1024),
+            "Visibility Timeout (seconds)": attributes.get("VisibilityTimeout", "N/A"),
+            "Receive Message Wait Time (seconds)": attributes.get("ReceiveMessageWaitTimeSeconds", "N/A"),
+            "Dead Letter Target": attributes.get("RedrivePolicy", "None"),
+            "KMS Master Key": attributes.get("KmsMasterKeyId", "None"),
+            "KMS Data Key Reuse Period": attributes.get("KmsDataKeyReusePeriod", "N/A"),
+            "Content Based Deduplication": attributes.get("ContentBasedDeduplication", "False"),
+            "Deduplication Scope": attributes.get("DeduplicationScope", "N/A"),
+            "FIFO Queue": attributes.get("FifoQueue", "False"),
+            "Policy": attributes.get("Policy", "None"),
+        }
+
+        return friendly_attributes
+
+    except ClientError as e:
+        raise ValueError(f"Failed to get queue attributes: {e}") from e
+
+
+def get_queue_oldest_message(queue_url, days=7):
     """Get approximate age of oldest message in the queue over time.
 
     Args:
@@ -306,45 +350,3 @@ def get_queue_metrics(queue_url, days=7):
 
     except ClientError as e:
         raise ValueError(f"Failed to get queue metrics: {e}") from e
-
-
-def get_queue_attributes(sqs_client, queue_url):
-    """Get all attributes of a specific queue.
-
-    Args:
-        sqs_client: boto3 SQS client object
-        queue_url: The URL of the queue to get attributes for
-
-    Returns:
-        dict: Dictionary containing queue attributes with friendly names and values
-
-    Raises:
-        ValueError: When AWS API call fails
-    """
-    try:
-        response = sqs_client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])
-
-        attributes = response.get("Attributes", {})
-
-        friendly_attributes = {
-            "Created": attributes.get("CreatedTimestamp", "N/A"),
-            "Messages Available": attributes.get("ApproximateNumberOfMessages", "N/A"),
-            "Messages In Flight": attributes.get("ApproximateNumberOfMessagesNotVisible", "N/A"),
-            "Messages Delayed": attributes.get("ApproximateNumberOfMessagesDelayed", "N/A"),
-            "Message Retention Period (days)": str(int(attributes.get("MessageRetentionPeriod", 0)) / 86400),
-            "Maximum Message Size (KB)": str(int(attributes.get("MaximumMessageSize", 0)) / 1024),
-            "Visibility Timeout (seconds)": attributes.get("VisibilityTimeout", "N/A"),
-            "Receive Message Wait Time (seconds)": attributes.get("ReceiveMessageWaitTimeSeconds", "N/A"),
-            "Dead Letter Target": attributes.get("RedrivePolicy", "None"),
-            "KMS Master Key": attributes.get("KmsMasterKeyId", "None"),
-            "KMS Data Key Reuse Period": attributes.get("KmsDataKeyReusePeriod", "N/A"),
-            "Content Based Deduplication": attributes.get("ContentBasedDeduplication", "False"),
-            "Deduplication Scope": attributes.get("DeduplicationScope", "N/A"),
-            "FIFO Queue": attributes.get("FifoQueue", "False"),
-            "Policy": attributes.get("Policy", "None"),
-        }
-
-        return friendly_attributes
-
-    except ClientError as e:
-        raise ValueError(f"Failed to get queue attributes: {e}") from e
