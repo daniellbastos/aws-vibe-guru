@@ -1,5 +1,53 @@
 # Release Notes
 
+## [0.0.2] - 2024-02-16 (Draft)
+
+Enhanced SQS metrics analysis with detailed volume statistics.
+
+### Added
+
+#### New Command
+- `sqs-analyze-volume`: Advanced queue volume analysis
+  - Analyze message volume trends over time
+  - Compare peak volume with historical data
+  - Statistical analysis with mean and median
+  - Percentage-based trend analysis
+
+#### Features
+- Peak volume day identification
+- Comparison with second highest volume day
+- Mean volume analysis with difference and percentage
+- Median volume analysis with difference and percentage
+- Default 15-day analysis period with customizable range
+
+#### Code Quality
+- Improved code style with consistent double quotes
+- Enhanced error handling
+- Better type hints in docstrings
+
+### Technical Details
+
+#### Command Usage
+```bash
+# Basic usage
+aws-toolbelt sqs-analyze-volume queue-name
+
+# Custom time range
+aws-toolbelt sqs-analyze-volume queue-name --days 30
+```
+
+#### Analysis Output
+- Peak volume day and value
+- Second highest day comparison
+- Mean volume comparison with difference
+- Median volume comparison with difference
+- All values with formatted numbers and percentages
+
+### Notes
+- This release focuses on enhanced queue analysis
+- All metrics are based on CloudWatch data
+- Analysis includes percentage-based comparisons
+
 ## [0.0.1] - 2024-02-16
 
 First release of AWS Toolbelt, a CLI tool for AWS metrics extraction and resource management.
