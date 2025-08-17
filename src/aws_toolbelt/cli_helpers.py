@@ -48,12 +48,26 @@ def create_daily_breakdown(
     Returns:
         List of Text objects representing the daily breakdown lines
     """
+    import datetime
+
     breakdown_lines = []
 
     for item in data:
-        date = item[date_key]
+        date_str = item[date_key]
         value = item[value_key]
-        line_text = f"{date}: {value:,} {message_suffix}"
+
+        # Parse the date string to get the day of week
+        try:
+            if isinstance(date_str, str) and "-" in date_str:
+                date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d")
+                day_of_week = date_obj.strftime("%a")  # Abbreviated day name (Mon, Tue, etc.)
+                formatted_date = f"[{day_of_week}] {date_str}"
+            else:
+                formatted_date = str(date_str)
+        except ValueError:
+            formatted_date = str(date_str)
+
+        line_text = f"{formatted_date}: {value:,} {message_suffix}"
         breakdown_lines.append(Text(line_text))
 
     return breakdown_lines
