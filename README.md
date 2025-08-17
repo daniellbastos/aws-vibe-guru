@@ -2,17 +2,29 @@
 
 A command-line interface (CLI) tool for extracting AWS metrics and managing cloud resources. Initially focused on Amazon SQS queue monitoring.
 
-## 🚀 Current Features
+## 🚀 Features
 
-- **Basic CLI**: Command-line interface with colorful output using Rich
-- **Hello Command**: Example command to test the CLI
-- **AWS SQS Commands**:
-  - List queues with optional name filtering
-  - Get queue attributes in a friendly format
-  - Get message volume metrics with ASCII charts
-  - Monitor oldest message age
-- **AWS Base**: Base structure for AWS services integration using boto3
-- **Extensible Architecture**: Ready to add support for other AWS services
+### 📊 SQS Monitoring & Analysis
+- **Queue Management**: List and filter SQS queues
+- **Attribute Analysis**: Get comprehensive queue attributes
+- **Message Volume Tracking**: Monitor message volume with beautiful ASCII charts
+- **Age Monitoring**: Track oldest message age over time
+- **Advanced Analytics**: Statistical analysis with mean, median, and percentage comparisons
+- **Multi-Queue Support**: Analyze multiple queues simultaneously
+
+### 🎨 Visual Enhancements
+- **Rich Terminal Output**: Beautiful colors, panels, and formatting
+- **ASCII Charts**: Dynamic bar charts for data visualization
+- **Day-of-Week Indicators**: `[Mon] 2024-01-01: 1,200 messages`
+- **Formatted Numbers**: Thousands separators for readability
+- **Color-coded Output**: Consistent color scheme throughout
+
+### 🛠️ Development Features
+- **Pre-commit Hooks**: Automated code quality checks
+- **Comprehensive Testing**: Full test suite with AWS mocking
+- **Modern Tooling**: UV package manager, Ruff linting/formatting
+- **Type Safety**: Complete type annotations
+- **Documentation**: Detailed help and usage examples
 
 ## 📋 Requirements
 
@@ -36,38 +48,61 @@ cd aws-toolbelt
 uv sync
 ```
 
-## 🚀 Current Usage
+## 🚀 Usage
 
-### Available Commands
+### 📋 Available Commands
 
 ```bash
-# Hello command (for testing)
-uv run python -m aws_toolbelt.cli
-# Or using the Makefile
-make hello
-
-# Hello command with custom name
-uv run python -m aws_toolbelt.cli --name "Developer"
-# or
-make hello-name
-
 # List SQS queues
-uv run python -m aws_toolbelt.cli sqs-list-queues
-# List queues with name prefix
-uv run python -m aws_toolbelt.cli sqs-list-queues --name "dev-"
+aws-toolbelt sqs-list-queues
+aws-toolbelt sqs-list-queues --name "prod-"
 
 # Get queue attributes
-uv run python -m aws_toolbelt.cli sqs-get-attributes "queue-name"
+aws-toolbelt sqs-get-attributes "my-queue"
 
-# Get queue message volume metrics (with ASCII chart)
-uv run python -m aws_toolbelt.cli sqs-get-metrics "queue-name"
-# Get metrics for a specific period
-uv run python -m aws_toolbelt.cli sqs-get-metrics "queue-name" --days 14
+# Get message volume metrics (with ASCII chart)
+aws-toolbelt sqs-get-metrics "my-queue"
+aws-toolbelt sqs-get-metrics "my-queue" --days 30
 
-# Get oldest message age metrics
-uv run python -m aws_toolbelt.cli sqs-get-oldest-message "queue-name"
-# Get age metrics for a specific period
-uv run python -m aws_toolbelt.cli sqs-get-oldest-message "queue-name" --days 14
+# Get oldest message age
+aws-toolbelt sqs-get-oldest-message "my-queue"
+aws-toolbelt sqs-get-oldest-message "my-queue" --days 14
+
+# Advanced volume analysis
+aws-toolbelt sqs-analyze-volume "my-queue"
+aws-toolbelt sqs-analyze-volume "queue1" "queue2" "queue3"
+aws-toolbelt sqs-analyze-volume "my-queue" --days 60
+```
+
+### 📊 Example Output
+
+```
+Queue: my-queue
+───────
+
+Total messages received: 15,420
+
+Daily breakdown:
+[Mon] 2024-01-01: 1,200 messages
+[Tue] 2024-01-02: 1,350 messages
+[Wed] 2024-01-03: 1,800 messages
+
+Message Volume Chart:
+   1,800 ┬  █
+   1,440 ┤  █
+   1,080 ┤  █       █
+    720 ┤  █       █
+    360 ┤  █       █
+      0 ┴  █       █
+         01-01   01-02   01-03
+
+Volume Analysis:
+• Peak Volume Day:
+  - Date: 2024-01-03
+  - Volume: 1,800 messages
+• Comparison with Mean:
+  - Mean Volume: 1,450 messages
+  - Percentage Above Mean: 24.1%
 ```
 
 ### AWS Credentials
@@ -107,38 +142,42 @@ aws-toolbelt/
 
 ## 🛠️ Development
 
-### How to Contribute
+### 🛠️ Development
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/daniellbastos/aws-toolbelt.git
-   cd aws-toolbelt
-   ```
+#### Quick Start
+```bash
+# Clone and setup
+git clone https://github.com/daniellbastos/aws-toolbelt.git
+cd aws-toolbelt
+uv sync --extra dev
+make pre-commit-install
 
-2. **Install dependencies**:
-   ```bash
-   uv sync
-   ```
+# Run tests
+make test
 
-3. **Test your changes**:
-   ```bash
-   # Basic commands
-   make hello
-   uv run python -m aws_toolbelt.cli --name "Test"
+# Check code quality
+make quality
+```
 
-   # SQS commands
-   uv run python -m aws_toolbelt.cli sqs-list-queues
-   uv run python -m aws_toolbelt.cli sqs-get-metrics "your-queue-name"
-   ```
+#### Development Commands
+```bash
+# Install dependencies
+uv sync --extra dev
 
-4. **Make your changes and test**
+# Run tests
+make test
 
-5. **Check code quality**:
-   ```bash
-   make quality      # Run linting and formatting
-   make lint         # Check code with Ruff
-   make format       # Format code with Ruff
-   ```
+# Check code quality
+make quality      # Run linting and formatting
+make lint         # Check code with Ruff
+make format       # Format code with Ruff
+
+# Install pre-commit hooks
+make pre-commit-install
+
+# Run pre-commit manually
+make pre-commit-run
+```
 
 ### Code Quality
 
@@ -155,13 +194,9 @@ make install-dev    # Install dev dependencies
 make clean         # Clean cache files
 ```
 
-### Next Development Steps
-
-See the `ROADMAP.md` file for details about the next planned features.
-
 ## 📚 Documentation
 
-- [ROADMAP.md](ROADMAP.md) - Project roadmap and planned features
+- [RELEASE_NOTES.md](RELEASE_NOTES.md) - Detailed release notes and features
 
 ## 📄 License
 
@@ -182,4 +217,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Made with ❤️**
+**Made with ❤️ as a vibe coding test**
