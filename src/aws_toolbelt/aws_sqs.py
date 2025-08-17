@@ -169,6 +169,113 @@ def get_queue_oldest_message(sqs_client, queue_url, days=7):
         raise ValueError(f"Failed to get queue age metrics: {e}") from e
 
 
+def analyze_queue_volume(sqs_client, queue_url, days=15):
+    """Analyze message volume trends for a queue.
+
+    Args:
+        sqs_client: boto3 SQS client object
+        queue_url: The URL of the queue to analyze
+        days: Number of days to look back (default: 15)
+
+    Returns:
+        dict: Dictionary containing volume analysis with keys:
+            'daily_data': List of daily volumes
+            'max_volume_day': Day with highest volume
+            'max_volume': Highest daily volume
+            'second_max_day': Day with second highest volume
+            'second_max_volume': Second highest daily volume
+            'volume_difference': Difference between max and second max
+            'volume_increase_percent': Percentage increase from second to max
+
+    Raises:
+        ValueError: When AWS API call fails
+    """
+    try:
+        # Create CloudWatch client
+        cloudwatch = boto3.client("cloudwatch")
+
+        # Get queue name from URL
+        queue_name = queue_url.split("/")[-1]
+
+        # Get metrics for the last N days
+        response = cloudwatch.get_metric_statistics(
+            Namespace="AWS/SQS",
+            MetricName="NumberOfMessagesReceived",
+            Dimensions=[{"Name": "QueueName", "Value": queue_name}],
+            StartTime=datetime.datetime.utcnow() - datetime.timedelta(days=days),
+            EndTime=datetime.datetime.utcnow(),
+            Period=86400,  # 1 day in seconds
+            Statistics=["Sum"],
+        )
+
+        # Process the data
+        datapoints = response.get("Datapoints", [])
+        datapoints.sort(key=lambda x: x["Timestamp"])
+
+        # Prepare daily data
+        daily_data = [
+            {"date": point["Timestamp"].strftime("%Y-%m-%d"), "value": int(point["Sum"])} for point in datapoints
+        ]
+
+        # Find max and second max
+        if len(daily_data) < 2:
+            return {
+                "daily_data": daily_data,
+                "max_volume_day": daily_data[0]["date"] if daily_data else None,
+                "max_volume": daily_data[0]["value"] if daily_data else 0,
+                "second_max_day": None,
+                "second_max_volume": 0,
+                "volume_difference": daily_data[0]["value"] if daily_data else 0,
+                "volume_increase_percent": 100 if daily_data else 0,
+            }
+
+        # Sort by volume
+        volume_sorted = sorted(daily_data, key=lambda x: x["value"], reverse=True)
+        max_day = volume_sorted[0]
+        second_max_day = volume_sorted[1]
+
+        # Calculate difference and percentage with second highest
+        volume_diff = max_day["value"] - second_max_day["value"]
+        volume_percent = (volume_diff / second_max_day["value"] * 100) if second_max_day["value"] > 0 else 100
+
+        # Calculate mean and median
+        all_volumes = [day["value"] for day in daily_data]
+        mean_volume = sum(all_volumes) / len(all_volumes)
+
+        # Calculate median
+        sorted_volumes = sorted(all_volumes)
+        mid = len(sorted_volumes) // 2
+        median_volume = sorted_volumes[mid]
+        if len(sorted_volumes) % 2 == 0:
+            median_volume = (sorted_volumes[mid - 1] + sorted_volumes[mid]) / 2
+
+        # Calculate differences from mean and median
+        mean_diff = max_day["value"] - mean_volume
+        mean_percent = (mean_diff / mean_volume * 100) if mean_volume > 0 else 100
+
+        median_diff = max_day["value"] - median_volume
+        median_percent = (median_diff / median_volume * 100) if median_volume > 0 else 100
+
+        return {
+            "daily_data": daily_data,
+            "max_volume_day": max_day["date"],
+            "max_volume": max_day["value"],
+            "second_max_day": second_max_day["date"],
+            "second_max_volume": second_max_day["value"],
+            "volume_difference": volume_diff,
+            "volume_increase_percent": volume_percent,
+            "mean_volume": mean_volume,
+            "mean_difference": mean_diff,
+            "mean_increase_percent": mean_percent,
+            "median_volume": median_volume,
+            "median_difference": median_diff,
+            "median_increase_percent": median_percent,
+        }
+
+    except ClientError as e:
+        raise ValueError(f"Failed to analyze queue volume: {e}") from e
+
+
 def get_queue_metrics(sqs_client, queue_url, days=7):
     """Get CloudWatch metrics for a specific queue.
 
