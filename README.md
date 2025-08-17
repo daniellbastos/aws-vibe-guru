@@ -1,4 +1,4 @@
-# AWS Toolbelt 🔧
+# AWS Vibe Guru 🔧
 
 A command-line interface (CLI) tool for extracting AWS metrics and managing cloud resources. Initially focused on Amazon SQS queue monitoring.
 
@@ -41,8 +41,8 @@ A command-line interface (CLI) tool for extracting AWS metrics and managing clou
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Clone the repository
-git clone https://github.com/daniellbastos/aws-toolbelt.git
-cd aws-toolbelt
+git clone https://github.com/daniellbastos/aws-vibe-guru.git
+cd aws-vibe-guru
 
 # Install dependencies
 uv sync
@@ -54,24 +54,24 @@ uv sync
 
 ```bash
 # List SQS queues
-aws-toolbelt sqs-list-queues
-aws-toolbelt sqs-list-queues --name "prod-"
+aws-vibe-guru sqs-list-queues
+aws-vibe-guru sqs-list-queues --name "prod-"
 
 # Get queue attributes
-aws-toolbelt sqs-get-attributes "my-queue"
+aws-vibe-guru sqs-get-attributes "my-queue"
 
 # Get message volume metrics (with ASCII chart)
-aws-toolbelt sqs-get-metrics "my-queue"
-aws-toolbelt sqs-get-metrics "my-queue" --days 30
+aws-vibe-guru sqs-get-metrics "my-queue"
+aws-vibe-guru sqs-get-metrics "my-queue" --days 30
 
 # Get oldest message age
-aws-toolbelt sqs-get-oldest-message "my-queue"
-aws-toolbelt sqs-get-oldest-message "my-queue" --days 14
+aws-vibe-guru sqs-get-oldest-message "my-queue"
+aws-vibe-guru sqs-get-oldest-message "my-queue" --days 14
 
 # Advanced volume analysis
-aws-toolbelt sqs-analyze-volume "my-queue"
-aws-toolbelt sqs-analyze-volume "queue1" "queue2" "queue3"
-aws-toolbelt sqs-analyze-volume "my-queue" --days 60
+aws-vibe-guru sqs-analyze-volume "my-queue"
+aws-vibe-guru sqs-analyze-volume "queue1" "queue2" "queue3"
+aws-vibe-guru sqs-analyze-volume "my-queue" --days 60
 ```
 
 ### 📊 Example Output
@@ -127,8 +127,8 @@ The tool supports two ways to provide AWS credentials:
 ### Project Structure
 
 ```
-aws-toolbelt/
-├── src/aws_toolbelt/
+aws-vibe-guru/
+├── src/aws_vibe_guru/
 │   ├── __init__.py          # Version and author information
 │   ├── cli.py               # Main CLI with all commands
 │   ├── cli_helpers.py       # Helpers for Rich formatting
@@ -147,13 +147,10 @@ aws-toolbelt/
 #### Quick Start
 ```bash
 # Clone and setup
-git clone https://github.com/daniellbastos/aws-toolbelt.git
-cd aws-toolbelt
+git clone https://github.com/daniellbastos/aws-vibe-guru.git
+cd aws-vibe-guru
 uv sync --extra dev
 make pre-commit-install
-
-# Run tests
-make test
 
 # Check code quality
 make quality
@@ -163,9 +160,6 @@ make quality
 ```bash
 # Install dependencies
 uv sync --extra dev
-
-# Run tests
-make test
 
 # Check code quality
 make quality      # Run linting and formatting
@@ -212,8 +206,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Links
 
-- [Repository](https://github.com/daniellbastos/aws-toolbelt)
-- [Issues](https://github.com/daniellbastos/aws-toolbelt/issues)
+- [Repository](https://github.com/daniellbastos/aws-vibe-guru)
+- [Issues](https://github.com/daniellbastos/aws-vibe-guru/issues)
 
 ---
 

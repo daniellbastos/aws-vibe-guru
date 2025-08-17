@@ -2,7 +2,7 @@
 
 ## [0.0.1] - 2024-12-19
 
-First stable release of AWS Toolbelt, a comprehensive CLI tool for AWS metrics extraction and resource management with focus on SQS monitoring and analysis.
+First stable release of AWS Vibe Guru, a comprehensive CLI tool for AWS metrics extraction and resource management with focus on SQS monitoring and analysis.
 
 ### 🚀 Core Features
 
@@ -106,31 +106,31 @@ First stable release of AWS Toolbelt, a comprehensive CLI tool for AWS metrics e
 #### Command Examples
 ```bash
 # List all queues
-aws-toolbelt sqs-list-queues
+aws-vibe-guru sqs-list-queues
 
 # List queues with prefix
-aws-toolbelt sqs-list-queues --name "prod-"
+aws-vibe-guru sqs-list-queues --name "prod-"
 
 # Get queue attributes
-aws-toolbelt sqs-get-attributes "my-queue"
+aws-vibe-guru sqs-get-attributes "my-queue"
 
 # Get metrics for last 7 days (default)
-aws-toolbelt sqs-get-metrics "my-queue"
+aws-vibe-guru sqs-get-metrics "my-queue"
 
 # Get metrics for last 30 days
-aws-toolbelt sqs-get-metrics "my-queue" --days 30
+aws-vibe-guru sqs-get-metrics "my-queue" --days 30
 
 # Get oldest message age
-aws-toolbelt sqs-get-oldest-message "my-queue"
+aws-vibe-guru sqs-get-oldest-message "my-queue"
 
 # Analyze volume for single queue
-aws-toolbelt sqs-analyze-volume "my-queue"
+aws-vibe-guru sqs-analyze-volume "my-queue"
 
 # Analyze multiple queues
-aws-toolbelt sqs-analyze-volume "queue1" "queue2" "queue3"
+aws-vibe-guru sqs-analyze-volume "queue1" "queue2" "queue3"
 
 # Analyze with custom period
-aws-toolbelt sqs-analyze-volume "my-queue" --days 60
+aws-vibe-guru sqs-analyze-volume "my-queue" --days 60
 ```
 
 #### Output Features

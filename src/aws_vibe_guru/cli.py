@@ -1,14 +1,14 @@
 import typer
 from rich.console import Console
 
-from aws_toolbelt.aws_sqs import (
+from aws_vibe_guru.aws_sqs import (
     analyze_queue_volume,
     get_queue_attributes,
     get_queue_metrics,
     get_queue_oldest_message,
     list_sqs_queues,
 )
-from aws_toolbelt.cli_helpers import (
+from aws_vibe_guru.cli_helpers import (
     Panel,
     Text,
     create_bar_chart,
@@ -16,7 +16,7 @@ from aws_toolbelt.cli_helpers import (
 )
 
 app = typer.Typer(
-    name="aws-toolbelt",
+    name="aws-vibe-guru",
     help="A CLI tool for managing AWS resources",
     add_completion=True,
 )
@@ -31,14 +31,14 @@ def sqs_list_queues(
 
     Examples:
         # List all queues
-        aws-toolbelt sqs-list-queues
+        aws-vibe-guru sqs-list-queues
 
         # List queues with specific prefix
-        aws-toolbelt sqs-list-queues --name "prod-"
-        aws-toolbelt sqs-list-queues -n "dev-"
+        aws-vibe-guru sqs-list-queues --name "prod-"
+        aws-vibe-guru sqs-list-queues -n "dev-"
 
         # List queues with full prefix
-        aws-toolbelt sqs-list-queues --name "my-app-queue"
+        aws-vibe-guru sqs-list-queues --name "my-app-queue"
     """
     panel_content = Text(f"Listing queues with prefix: {queue_name_prefix}")
     panel = Panel(panel_content, "AWS SQS Queues")
@@ -59,13 +59,13 @@ def sqs_get_attributes(
 
     Examples:
         # Get attributes for a specific queue
-        aws-toolbelt sqs-get-attributes "my-queue"
+        aws-vibe-guru sqs-get-attributes "my-queue"
 
         # Get attributes for queue with special characters
-        aws-toolbelt sqs-get-attributes "prod-queue-123"
+        aws-vibe-guru sqs-get-attributes "prod-queue-123"
 
         # Get attributes for FIFO queue
-        aws-toolbelt sqs-get-attributes "my-fifo-queue.fifo"
+        aws-vibe-guru sqs-get-attributes "my-fifo-queue.fifo"
     """
     panel_content = Text(f"Getting attributes for queue: {queue_name}")
     panel = Panel(panel_content, "AWS SQS Queue Attributes")
@@ -97,17 +97,17 @@ def sqs_get_metrics(
 
     Examples:
         # Get metrics for last 7 days (default)
-        aws-toolbelt sqs-get-metrics "my-queue"
+        aws-vibe-guru sqs-get-metrics "my-queue"
 
         # Get metrics for last 14 days
-        aws-toolbelt sqs-get-metrics "my-queue" --days 14
-        aws-toolbelt sqs-get-metrics "my-queue" -d 14
+        aws-vibe-guru sqs-get-metrics "my-queue" --days 14
+        aws-vibe-guru sqs-get-metrics "my-queue" -d 14
 
         # Get metrics for last 30 days
-        aws-toolbelt sqs-get-metrics "prod-queue" --days 30
+        aws-vibe-guru sqs-get-metrics "prod-queue" --days 30
 
         # Get metrics for last 3 days
-        aws-toolbelt sqs-get-metrics "dev-queue" -d 3
+        aws-vibe-guru sqs-get-metrics "dev-queue" -d 3
     """
     panel_content = Text(f"Getting metrics for queue: {queue_name} (last {days} days)")
     panel = Panel(panel_content, "AWS SQS Queue Metrics")
@@ -155,17 +155,17 @@ def sqs_get_oldest_message(
 
     Examples:
         # Get oldest message age for last 7 days (default)
-        aws-toolbelt sqs-get-oldest-message "my-queue"
+        aws-vibe-guru sqs-get-oldest-message "my-queue"
 
         # Get oldest message age for last 14 days
-        aws-toolbelt sqs-get-oldest-message "my-queue" --days 14
-        aws-toolbelt sqs-get-oldest-message "my-queue" -d 14
+        aws-vibe-guru sqs-get-oldest-message "my-queue" --days 14
+        aws-vibe-guru sqs-get-oldest-message "my-queue" -d 14
 
         # Get oldest message age for last 30 days
-        aws-toolbelt sqs-get-oldest-message "prod-queue" --days 30
+        aws-vibe-guru sqs-get-oldest-message "prod-queue" --days 30
 
         # Get oldest message age for last 24 hours
-        aws-toolbelt sqs-get-oldest-message "dev-queue" -d 1
+        aws-vibe-guru sqs-get-oldest-message "dev-queue" -d 1
     """
     panel_content = Text(f"Getting oldest message age for queue: {queue_name} (last {days} days)")
     panel = Panel(panel_content, "AWS SQS Queue Message Age")
@@ -198,20 +198,20 @@ def sqs_analyze_volume(
 
     Examples:
         # Analyze single queue for last 15 days (default)
-        aws-toolbelt sqs-analyze-volume "my-queue"
+        aws-vibe-guru sqs-analyze-volume "my-queue"
 
         # Analyze multiple queues for last 15 days
-        aws-toolbelt sqs-analyze-volume "queue1" "queue2" "queue3"
+        aws-vibe-guru sqs-analyze-volume "queue1" "queue2" "queue3"
 
         # Analyze queues for last 30 days
-        aws-toolbelt sqs-analyze-volume "prod-queue" "dev-queue" --days 30
-        aws-toolbelt sqs-analyze-volume "prod-queue" "dev-queue" -d 30
+        aws-vibe-guru sqs-analyze-volume "prod-queue" "dev-queue" --days 30
+        aws-vibe-guru sqs-analyze-volume "prod-queue" "dev-queue" -d 30
 
         # Analyze queues for last 7 days
-        aws-toolbelt sqs-analyze-volume "my-queue" -d 7
+        aws-vibe-guru sqs-analyze-volume "my-queue" -d 7
 
         # Analyze multiple queues with different time periods
-        aws-toolbelt sqs-analyze-volume "high-volume-queue" "low-volume-queue" --days 60
+        aws-vibe-guru sqs-analyze-volume "high-volume-queue" "low-volume-queue" --days 60
     """
     panel_content = Text(f"Analyzing message volume for {len(queue_names)} queues (last {days} days)")
     panel = Panel(panel_content, "AWS SQS Queue Volume Analysis")

@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "aws-toolbelt"
-version = "0.1.0"
+name = "aws-vibe-guru"
+version = "0.0.1"
 description = "A CLI tool for extracting AWS metrics and managing resources"
 authors = [
     {name = "Daniel Bastos", email = "danielfloresbastos@gmail.com"}
@@ -53,10 +53,10 @@ Repository = "https://github.com/daniellbastos/aws-toolbelt"
 Issues = "https://github.com/daniellbastos/aws-toolbelt/issues"
 
 [project.scripts]
-aws-toolbelt = "aws_toolbelt.cli:app"
+aws-vibe-guru = "aws_vibe_guru.cli:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/aws_toolbelt"]
+packages = ["src/aws_vibe_guru"]
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -93,14 +93,14 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.ruff.lint.isort]
-known-first-party = ["aws_toolbelt"]
+known-first-party = ["aws_vibe_guru"]
 
 # isort configuration
 [tool.isort]
 profile = "black"
 multi_line_output = 3
 line_length = 88
-known_first_party = ["aws_toolbelt"]
+known_first_party = ["aws_vibe_guru"]
 skip_glob = ["*/__pycache__/*"]
 
 # pytest configuration
