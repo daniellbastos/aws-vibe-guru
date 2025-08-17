@@ -10,7 +10,7 @@ from aws_toolbelt.aws_sqs import (
     list_sqs_queues,
 )
 from aws_toolbelt.cli_helpers import (
-    panel as gui_panel,
+    Panel,
     Text,
     create_bar_chart,
     create_daily_breakdown,
@@ -29,8 +29,21 @@ console = Console()
 def sqs_list_queues(
     queue_name_prefix: str = typer.Option(None, "--name", "-n", help="Filter queues by name prefix"),
 ) -> None:
+    """List all SQS queues with optional filtering by name prefix.
+
+    Examples:
+        # List all queues
+        aws-toolbelt sqs-list-queues
+
+        # List queues with specific prefix
+        aws-toolbelt sqs-list-queues --name "prod-"
+        aws-toolbelt sqs-list-queues -n "dev-"
+
+        # List queues with full prefix
+        aws-toolbelt sqs-list-queues --name "my-app-queue"
+    """
     panel_content = Text(f"Listing queues with prefix: {queue_name_prefix}")
-    panel = gui_panel(panel_content, "AWS SQS Queues")
+    panel = Panel(panel_content, "AWS SQS Queues")
     console.print(panel)
 
     queues = list_sqs_queues(queue_name_prefix)
@@ -44,9 +57,20 @@ def sqs_list_queues(
 def sqs_get_attributes(
     queue_name: str = typer.Argument(..., help="The name of the queue to get attributes for"),
 ) -> None:
-    """Get all attributes of a specific SQS queue."""
+    """Get all attributes of a specific SQS queue.
+
+    Examples:
+        # Get attributes for a specific queue
+        aws-toolbelt sqs-get-attributes "my-queue"
+
+        # Get attributes for queue with special characters
+        aws-toolbelt sqs-get-attributes "prod-queue-123"
+
+        # Get attributes for FIFO queue
+        aws-toolbelt sqs-get-attributes "my-fifo-queue.fifo"
+    """
     panel_content = Text(f"Getting attributes for queue: {queue_name}")
-    panel = gui_panel(panel_content, "AWS SQS Queue Attributes")
+    panel = Panel(panel_content, "AWS SQS Queue Attributes")
     console.print(panel)
 
     queues = list_sqs_queues()
@@ -71,9 +95,24 @@ def sqs_get_metrics(
     queue_name: str = typer.Argument(..., help="The name of the queue to get metrics for"),
     days: int = typer.Option(7, "--days", "-d", help="Number of days to look back"),
 ) -> None:
-    """Get CloudWatch metrics for a specific SQS queue."""
+    """Get CloudWatch metrics for a specific SQS queue.
+
+    Examples:
+        # Get metrics for last 7 days (default)
+        aws-toolbelt sqs-get-metrics "my-queue"
+
+        # Get metrics for last 14 days
+        aws-toolbelt sqs-get-metrics "my-queue" --days 14
+        aws-toolbelt sqs-get-metrics "my-queue" -d 14
+
+        # Get metrics for last 30 days
+        aws-toolbelt sqs-get-metrics "prod-queue" --days 30
+
+        # Get metrics for last 3 days
+        aws-toolbelt sqs-get-metrics "dev-queue" -d 3
+    """
     panel_content = Text(f"Getting metrics for queue: {queue_name} (last {days} days)")
-    panel = gui_panel(panel_content, "AWS SQS Queue Metrics")
+    panel = Panel(panel_content, "AWS SQS Queue Metrics")
     console.print(panel)
 
     queues = list_sqs_queues()
@@ -120,9 +159,24 @@ def sqs_get_oldest_message(
     queue_name: str = typer.Argument(..., help="The name of the queue to check"),
     days: int = typer.Option(7, "--days", "-d", help="Number of days to look back"),
 ) -> None:
-    """Get the age of the oldest message in a specific SQS queue over time."""
+    """Get the age of the oldest message in a specific SQS queue over time.
+
+    Examples:
+        # Get oldest message age for last 7 days (default)
+        aws-toolbelt sqs-get-oldest-message "my-queue"
+
+        # Get oldest message age for last 14 days
+        aws-toolbelt sqs-get-oldest-message "my-queue" --days 14
+        aws-toolbelt sqs-get-oldest-message "my-queue" -d 14
+
+        # Get oldest message age for last 30 days
+        aws-toolbelt sqs-get-oldest-message "prod-queue" --days 30
+
+        # Get oldest message age for last 24 hours
+        aws-toolbelt sqs-get-oldest-message "dev-queue" -d 1
+    """
     panel_content = Text(f"Getting oldest message age for queue: {queue_name} (last {days} days)")
-    panel = gui_panel(panel_content, "AWS SQS Queue Message Age")
+    panel = Panel(panel_content, "AWS SQS Queue Message Age")
     console.print(panel)
 
     queues = list_sqs_queues()
@@ -148,9 +202,27 @@ def sqs_analyze_volume(
     queue_names: list[str] = typer.Argument(..., help="Names of the queues to analyze"),
     days: int = typer.Option(15, "--days", "-d", help="Number of days to look back"),
 ) -> None:
-    """Analyze message volume trends for multiple SQS queues."""
+    """Analyze message volume trends for multiple SQS queues.
+
+    Examples:
+        # Analyze single queue for last 15 days (default)
+        aws-toolbelt sqs-analyze-volume "my-queue"
+
+        # Analyze multiple queues for last 15 days
+        aws-toolbelt sqs-analyze-volume "queue1" "queue2" "queue3"
+
+        # Analyze queues for last 30 days
+        aws-toolbelt sqs-analyze-volume "prod-queue" "dev-queue" --days 30
+        aws-toolbelt sqs-analyze-volume "prod-queue" "dev-queue" -d 30
+
+        # Analyze queues for last 7 days
+        aws-toolbelt sqs-analyze-volume "my-queue" -d 7
+
+        # Analyze multiple queues with different time periods
+        aws-toolbelt sqs-analyze-volume "high-volume-queue" "low-volume-queue" --days 60
+    """
     panel_content = Text(f"Analyzing message volume for {len(queue_names)} queues (last {days} days)")
-    panel = gui_panel(panel_content, "AWS SQS Queue Volume Analysis")
+    panel = Panel(panel_content, "AWS SQS Queue Volume Analysis")
     console.print(panel)
 
     all_queues = list_sqs_queues()

@@ -1,6 +1,6 @@
 from typing import Any, List, Tuple
 
-from rich.panel import Panel
+from rich.panel import Panel as RichPanel
 from rich.text import Text as RichText
 
 
@@ -11,18 +11,24 @@ class Text(RichText):
         super().__init__(text, style=style, **kwargs)
 
 
-def panel(
-    content: Any,
-    title: str,
-    border_style: str = "blue",
-    padding: Tuple[int, int] = (1, 2),
-) -> Panel:
-    return Panel(
-        content,
-        title=title,
-        border_style=border_style,
-        padding=padding,
-    )
+class Panel(RichPanel):
+    """A Panel class with default styling for CLI output."""
+
+    def __init__(
+        self,
+        content: Any,
+        title: str,
+        border_style: str = "blue",
+        padding: Tuple[int, int] = (1, 2),
+        **kwargs,
+    ):
+        super().__init__(
+            content,
+            title=title,
+            border_style=border_style,
+            padding=padding,
+            **kwargs,
+        )
 
 
 def create_daily_breakdown(
