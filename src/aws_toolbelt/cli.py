@@ -9,9 +9,12 @@ from aws_toolbelt.aws_sqs import (
     get_queue_oldest_message,
     list_sqs_queues,
 )
-from aws_toolbelt.cli_helpers import panel as gui_panel
-from aws_toolbelt.cli_helpers import text as gui_text
-from aws_toolbelt.cli_helpers import create_bar_chart
+from aws_toolbelt.cli_helpers import (
+    panel as gui_panel,
+    Text,
+    create_bar_chart,
+    create_daily_breakdown,
+)
 
 app = typer.Typer(
     name="aws-toolbelt",
@@ -26,7 +29,7 @@ console = Console()
 def sqs_list_queues(
     queue_name_prefix: str = typer.Option(None, "--name", "-n", help="Filter queues by name prefix"),
 ) -> None:
-    panel_content = gui_text(f"Listing queues with prefix: {queue_name_prefix}")
+    panel_content = Text(f"Listing queues with prefix: {queue_name_prefix}")
     panel = gui_panel(panel_content, "AWS SQS Queues")
     console.print(panel)
 
@@ -34,7 +37,7 @@ def sqs_list_queues(
 
     for queue in queues:
         queue_text = f"Name: {queue['name']}\nURL: {queue['url']}"
-        console.print(gui_text(queue_text))
+        console.print(Text(queue_text))
 
 
 @app.command()
@@ -42,7 +45,7 @@ def sqs_get_attributes(
     queue_name: str = typer.Argument(..., help="The name of the queue to get attributes for"),
 ) -> None:
     """Get all attributes of a specific SQS queue."""
-    panel_content = gui_text(f"Getting attributes for queue: {queue_name}")
+    panel_content = Text(f"Getting attributes for queue: {queue_name}")
     panel = gui_panel(panel_content, "AWS SQS Queue Attributes")
     console.print(panel)
 
@@ -54,13 +57,13 @@ def sqs_get_attributes(
             break
 
     if not queue_url:
-        console.print(gui_text(f"Queue '{queue_name}' not found", style="bold red"))
+        console.print(Text(f"Queue '{queue_name}' not found", style="bold red"))
         return
 
     attributes = get_queue_attributes(queue_url)
 
     for key, value in attributes.items():
-        console.print(gui_text(f"{key}: {value}"))
+        console.print(Text(f"{key}: {value}"))
 
 
 @app.command()
@@ -69,7 +72,7 @@ def sqs_get_metrics(
     days: int = typer.Option(7, "--days", "-d", help="Number of days to look back"),
 ) -> None:
     """Get CloudWatch metrics for a specific SQS queue."""
-    panel_content = gui_text(f"Getting metrics for queue: {queue_name} (last {days} days)")
+    panel_content = Text(f"Getting metrics for queue: {queue_name} (last {days} days)")
     panel = gui_panel(panel_content, "AWS SQS Queue Metrics")
     console.print(panel)
 
@@ -81,18 +84,24 @@ def sqs_get_metrics(
             break
 
     if not queue_url:
-        console.print(gui_text(f"Queue '{queue_name}' not found", style="bold red"))
+        console.print(Text(f"Queue '{queue_name}' not found", style="bold red"))
         return
 
     metrics = get_queue_metrics(queue_url, days)
 
-    console.print(gui_text(f"\nTotal messages received: {metrics['total']:,}", style="bold blue"))
+    console.print(Text(f"\nTotal messages received: {metrics['total']:,}", style="bold blue"))
 
-    console.print(gui_text("\nDaily breakdown:", style="bold"))
-    for day in metrics["daily_data"]:
-        console.print(gui_text(f"{day['date']}: {day['value']:,} messages"))
+    console.print(Text("\nDaily breakdown:", style="bold"))
+    breakdown_lines = create_daily_breakdown(
+        data=metrics["daily_data"],
+        value_key="value",
+        date_key="date",
+        message_suffix="messages"
+    )
+    for line in breakdown_lines:
+        console.print(line)
 
-    console.print(gui_text("\nMessage Volume Chart:", style="bold"))
+    console.print(Text("\nMessage Volume Chart:", style="bold"))
 
     graph_lines = create_bar_chart(
         data=metrics["daily_data"],
@@ -103,7 +112,7 @@ def sqs_get_metrics(
 
     console.print()
     for line in graph_lines:
-        console.print(gui_text(line, style="dim" if "└" in line or not any(c in "┬┤┴│" for c in line) else None))
+        console.print(Text(line, style="dim" if "└" in line or not any(c in "┬┤┴│" for c in line) else None))
 
 
 @app.command()
@@ -112,7 +121,7 @@ def sqs_get_oldest_message(
     days: int = typer.Option(7, "--days", "-d", help="Number of days to look back"),
 ) -> None:
     """Get the age of the oldest message in a specific SQS queue over time."""
-    panel_content = gui_text(f"Getting oldest message age for queue: {queue_name} (last {days} days)")
+    panel_content = Text(f"Getting oldest message age for queue: {queue_name} (last {days} days)")
     panel = gui_panel(panel_content, "AWS SQS Queue Message Age")
     console.print(panel)
 
@@ -124,14 +133,14 @@ def sqs_get_oldest_message(
             break
 
     if not queue_url:
-        console.print(gui_text(f"Queue '{queue_name}' not found", style="bold red"))
+        console.print(Text(f"Queue '{queue_name}' not found", style="bold red"))
         return
 
     metrics = get_queue_oldest_message(queue_url, days)
 
-    console.print(gui_text("\nSummary:", style="bold"))
-    console.print(gui_text(f"Current oldest message age: {metrics['current_max_age']}", style="bold blue"))
-    console.print(gui_text(f"Maximum age in period: {metrics['period_max_age']}", style="bold blue"))
+    console.print(Text("\nSummary:", style="bold"))
+    console.print(Text(f"Current oldest message age: {metrics['current_max_age']}", style="bold blue"))
+    console.print(Text(f"Maximum age in period: {metrics['period_max_age']}", style="bold blue"))
 
 
 @app.command()
@@ -140,7 +149,7 @@ def sqs_analyze_volume(
     days: int = typer.Option(15, "--days", "-d", help="Number of days to look back"),
 ) -> None:
     """Analyze message volume trends for multiple SQS queues."""
-    panel_content = gui_text(f"Analyzing message volume for {len(queue_names)} queues (last {days} days)")
+    panel_content = Text(f"Analyzing message volume for {len(queue_names)} queues (last {days} days)")
     panel = gui_panel(panel_content, "AWS SQS Queue Volume Analysis")
     console.print(panel)
 
@@ -152,23 +161,29 @@ def sqs_analyze_volume(
         queue_url = map_queue_url.get(queue_name)
 
         if not queue_url:
-            console.print(gui_text(f"\nQueue '{queue_name}' not found", style="bold red"))
+            console.print(Text(f"\nQueue '{queue_name}' not found", style="bold red"))
             continue
 
         analysis = analyze_queue_volume(queue_url, days)
 
         console.print()
-        console.print(gui_text(f"Queue: {queue_name}", style="bold green"))
-        console.print(gui_text("─" * (len(queue_name) + 7), style="dim"))
+        console.print(Text(f"Queue: {queue_name}", style="bold green"))
+        console.print(Text("─" * (len(queue_name) + 7), style="dim"))
 
         total_messages = sum(day["value"] for day in analysis["daily_data"])
-        console.print(gui_text(f"Total messages received: {total_messages:,}", style="bold blue"))
+        console.print(Text(f"Total messages received: {total_messages:,}", style="bold blue"))
 
-        console.print(gui_text("\nDaily breakdown:", style="bold"))
-        for day in analysis["daily_data"]:
-            console.print(gui_text(f"{day['date']}: {day['value']:,} messages"))
+        console.print(Text("\nDaily breakdown:", style="bold"))
+        breakdown_lines = create_daily_breakdown(
+            data=analysis["daily_data"],
+            value_key="value",
+            date_key="date",
+            message_suffix="messages"
+        )
+        for line in breakdown_lines:
+            console.print(line)
 
-        console.print(gui_text("\nMessage Volume Chart:", style="bold"))
+        console.print(Text("\nMessage Volume Chart:", style="bold"))
         graph_lines = create_bar_chart(
             data=analysis["daily_data"],
             value_key="value",
@@ -178,34 +193,34 @@ def sqs_analyze_volume(
 
         console.print()
         for line in graph_lines:
-            console.print(gui_text(line, style="dim" if "└" in line or not any(c in "┬┤┴│" for c in line) else None))
+            console.print(Text(line, style="dim" if "└" in line or not any(c in "┬┤┴│" for c in line) else None))
 
         console.print()
-        console.print(gui_text("Volume Analysis:", style="bold"))
+        console.print(Text("Volume Analysis:", style="bold"))
 
-        console.print(gui_text("• Peak Volume Day:", style="bold blue"))
-        console.print(gui_text(f"  - Date: {analysis['max_volume_day']}", style="dim"))
-        console.print(gui_text(f"  - Volume: {analysis['max_volume']:,} messages"))
+        console.print(Text("• Peak Volume Day:", style="bold blue"))
+        console.print(Text(f"  - Date: {analysis['max_volume_day']}", style="dim"))
+        console.print(Text(f"  - Volume: {analysis['max_volume']:,} messages"))
 
         if analysis["second_max_day"]:
             console.print()
-            console.print(gui_text("• Comparison with Second Highest:", style="bold blue"))
-            console.print(gui_text(f"  - Second Highest Day: {analysis['second_max_day']}", style="dim"))
-            console.print(gui_text(f"  - Second Highest Volume: {analysis['second_max_volume']:,} messages"))
-            console.print(gui_text(f"  - Volume Difference: +{analysis['volume_difference']:,} messages"))
-            console.print(gui_text(f"  - Percentage Increase: {analysis['volume_increase_percent']:.1f}%"))
+            console.print(Text("• Comparison with Second Highest:", style="bold blue"))
+            console.print(Text(f"  - Second Highest Day: {analysis['second_max_day']}", style="dim"))
+            console.print(Text(f"  - Second Highest Volume: {analysis['second_max_volume']:,} messages"))
+            console.print(Text(f"  - Volume Difference: +{analysis['volume_difference']:,} messages"))
+            console.print(Text(f"  - Percentage Increase: {analysis['volume_increase_percent']:.1f}%"))
 
         console.print()
-        console.print(gui_text("• Comparison with Mean:", style="bold blue"))
-        console.print(gui_text(f"  - Mean Volume: {int(analysis['mean_volume']):,} messages"))
-        console.print(gui_text(f"  - Difference from Mean: +{int(analysis['mean_difference']):,} messages"))
-        console.print(gui_text(f"  - Percentage Above Mean: {analysis['mean_increase_percent']:.1f}%"))
+        console.print(Text("• Comparison with Mean:", style="bold blue"))
+        console.print(Text(f"  - Mean Volume: {int(analysis['mean_volume']):,} messages"))
+        console.print(Text(f"  - Difference from Mean: +{int(analysis['mean_difference']):,} messages"))
+        console.print(Text(f"  - Percentage Above Mean: {analysis['mean_increase_percent']:.1f}%"))
 
         console.print()
-        console.print(gui_text("• Comparison with Median:", style="bold blue"))
-        console.print(gui_text(f"  - Median Volume: {int(analysis['median_volume']):,} messages"))
-        console.print(gui_text(f"  - Difference from Median: +{int(analysis['median_difference']):,} messages"))
-        console.print(gui_text(f"  - Percentage Above Median: {analysis['median_increase_percent']:.1f}%"))
+        console.print(Text("• Comparison with Median:", style="bold blue"))
+        console.print(Text(f"  - Median Volume: {int(analysis['median_volume']):,} messages"))
+        console.print(Text(f"  - Difference from Median: +{int(analysis['median_difference']):,} messages"))
+        console.print(Text(f"  - Percentage Above Median: {analysis['median_increase_percent']:.1f}%"))
 
 
 if __name__ == "__main__":

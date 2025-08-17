@@ -1,11 +1,14 @@
 from typing import Any, List, Tuple
 
 from rich.panel import Panel
-from rich.text import Text
+from rich.text import Text as RichText
 
 
-def text(text: str, style: str = "bold green") -> Text:
-    return Text(text, style=style)
+class Text(RichText):
+    """A Text class with default styling for CLI output."""
+
+    def __init__(self, text: str, style: str = "bold green", **kwargs):
+        super().__init__(text, style=style, **kwargs)
 
 
 def panel(
@@ -20,6 +23,34 @@ def panel(
         border_style=border_style,
         padding=padding,
     )
+
+
+def create_daily_breakdown(
+    data: List[dict],
+    value_key: str = "value",
+    date_key: str = "date",
+    message_suffix: str = "messages",
+) -> List[Text]:
+    """Create a daily breakdown display from data.
+
+    Args:
+        data: List of dictionaries containing the daily data
+        value_key: Key in the dictionary for the numeric value
+        date_key: Key in the dictionary for the date
+        message_suffix: Suffix to append to the value (e.g., "messages", "requests")
+
+    Returns:
+        List of Text objects representing the daily breakdown lines
+    """
+    breakdown_lines = []
+
+    for item in data:
+        date = item[date_key]
+        value = item[value_key]
+        line_text = f"{date}: {value:,} {message_suffix}"
+        breakdown_lines.append(Text(line_text))
+
+    return breakdown_lines
 
 
 def create_bar_chart(
