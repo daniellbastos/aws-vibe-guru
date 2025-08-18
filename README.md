@@ -18,6 +18,7 @@ A command-line interface (CLI) tool for extracting AWS metrics and managing clou
 - **Day-of-Week Indicators**: `[Mon] 2024-01-01: 1,200 messages`
 - **Formatted Numbers**: Thousands separators for readability
 - **Color-coded Output**: Consistent color scheme throughout
+- **Peak Day Highlighting**: Top 3 days marked with asterisk (*) for easy identification
 
 ### 🛠️ Development Features
 - **Pre-commit Hooks**: Automated code quality checks
@@ -82,10 +83,10 @@ Queue: my-queue
 
 Total messages received: 15,420
 
-Daily breakdown:
+Daily breakdown (top 3 days highlighted):
 [Mon] 2024-01-01: 1,200 messages
 [Tue] 2024-01-02: 1,350 messages
-[Wed] 2024-01-03: 1,800 messages
+[Wed] 2024-01-03: 1,800 messages *
 
 Message Volume Chart:
    1,800 ┬  █

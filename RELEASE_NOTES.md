@@ -1,5 +1,21 @@
 # Release Notes
 
+## [0.0.2] - 2024-12-19
+
+### 🎯 New Features
+
+#### Peak Day Highlighting
+- **Top 3 Days Highlighting**: Daily breakdown now highlights the top 3 days with highest message volume using asterisk (*)
+- **Improved User Experience**: Easier identification of peak days in volume analysis
+- **Enhanced Visual Feedback**: Clear visual distinction for high-volume days
+
+### 🔧 Technical Improvements
+- **Code Organization**: Moved datetime import to top of file for better organization
+- **Function Enhancement**: Added `number_of_days_to_highlight` parameter to `create_daily_breakdown` function
+- **Reusable Feature**: Highlighting functionality can be customized for different use cases
+
+---
+
 ## [0.0.1] - 2024-12-19
 
 First stable release of AWS Vibe Guru, a comprehensive CLI tool for AWS metrics extraction and resource management with focus on SQS monitoring and analysis.

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aws-vibe-guru"
-version = "0.0.1"
+version = "0.0.2"
 description = "A CLI tool for extracting AWS metrics and managing resources"
 authors = [
     {name = "Daniel Bastos", email = "danielfloresbastos@gmail.com"}
