@@ -237,9 +237,13 @@ def sqs_analyze_volume(
         total_messages = sum(day["value"] for day in analysis["daily_data"])
         console.print(Text(f"Total messages received: {total_messages:,}", style="bold blue"))
 
-        console.print(Text("\nDaily breakdown:", style="bold"))
+        console.print(Text("\nDaily breakdown (top 3 days highlighted):", style="bold"))
         breakdown_lines = create_daily_breakdown(
-            data=analysis["daily_data"], value_key="value", date_key="date", message_suffix="messages"
+            data=analysis["daily_data"],
+            value_key="value",
+            date_key="date",
+            message_suffix="messages",
+            number_of_days_to_highlight=3,
         )
         for line in breakdown_lines:
             console.print(line)

@@ -1,3 +1,4 @@
+import datetime
 from typing import Any, List, Tuple
 
 from rich.panel import Panel as RichPanel
@@ -36,6 +37,7 @@ def create_daily_breakdown(
     value_key: str = "value",
     date_key: str = "date",
     message_suffix: str = "messages",
+    number_of_days_to_highlight: int = 0,
 ) -> List[Text]:
     """Create a daily breakdown display from data.
 
@@ -44,19 +46,27 @@ def create_daily_breakdown(
         value_key: Key in the dictionary for the numeric value
         date_key: Key in the dictionary for the date
         message_suffix: Suffix to append to the value (e.g., "messages", "requests")
+        number_of_days_to_highlight: Number of days to highlight in the breakdown
 
     Returns:
-        List of Text objects representing the daily breakdown lines
+        List of Text objects representing the daily breakdown lines with the days highlighted if specified
     """
-    import datetime
 
     breakdown_lines = []
+    highlighted_days_by_value = []
+    for item in data:
+        highlighted_days_by_value.append(item[value_key])
+
+    highlighted_days_by_value.sort(reverse=True)
+    if number_of_days_to_highlight > 0:
+        highlighted_days_by_value = highlighted_days_by_value[:number_of_days_to_highlight]
+    else:
+        highlighted_days_by_value = []
 
     for item in data:
         date_str = item[date_key]
         value = item[value_key]
 
-        # Parse the date string to get the day of week
         try:
             if isinstance(date_str, str) and "-" in date_str:
                 date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d")
@@ -67,7 +77,8 @@ def create_daily_breakdown(
         except ValueError:
             formatted_date = str(date_str)
 
-        line_text = f"{formatted_date}: {value:,} {message_suffix}"
+        highlight_text = "" if value not in highlighted_days_by_value else " *"
+        line_text = f"{formatted_date}: {value:,} {message_suffix}{highlight_text}"
         breakdown_lines.append(Text(line_text))
 
     return breakdown_lines
