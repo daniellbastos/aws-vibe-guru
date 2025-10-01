@@ -7,6 +7,7 @@ from aws_vibe_guru.aws_s3 import (
     get_object_info,
     list_bucket_objects,
     list_buckets,
+    read_folder_contents,
     read_object_content,
 )
 from aws_vibe_guru.aws_sqs import (
@@ -323,7 +324,9 @@ def s3_list_buckets() -> None:
 def s3_list_objects(
     bucket_name: str = typer.Argument(..., help="The name of the bucket to list objects from"),
     prefix: str = typer.Option(None, "--prefix", "-p", help="Filter objects by prefix (file path)"),
-    max_results: int = typer.Option(1000, "--max", "-m", help="Maximum number of objects to return"),
+    max_results: int = typer.Option(
+        None, "--max", "-m", help="Maximum number of objects to return (default: unlimited)"
+    ),
     summary: bool = typer.Option(
         False, "--summary", "-s", help="Show only summary information (bucket, filter, total)"
     ),
@@ -456,7 +459,7 @@ def s3_read_object(
         console.print(panel)
 
         try:
-            result = list_bucket_objects(bucket_name, prefix, max_keys=100)
+            result = list_bucket_objects(bucket_name, prefix)
 
             if result["total_objects"] == 0:
                 console.print(Text(f"\nNo objects found with prefix '{prefix}'", style="bold yellow"))
@@ -518,6 +521,65 @@ def s3_read_object(
                     console.print()
 
             console.print(content_to_display)
+
+    except ValueError as e:
+        console.print(Text(f"Error: {str(e)}", style="bold red"))
+
+
+@app.command()
+def s3_read_folder(
+    bucket_name: str = typer.Argument(..., help="The name of the bucket"),
+    prefix: str = typer.Argument(..., help="The folder prefix/path to read"),
+    encoding: str = typer.Option("utf-8", "--encoding", "-e", help="Text encoding to use"),
+    max_files: int = typer.Option(None, "--max", "-m", help="Maximum number of files to read (default: unlimited)"),
+    format_json: bool = typer.Option(False, "--json", "-j", help="Format JSON content with 2-space indentation"),
+) -> None:
+    """Read all files from a folder in S3 bucket and display their contents.
+
+    Examples:
+        aws-vibe-guru s3-read-folder "my-bucket" "logs/2024/"
+
+        aws-vibe-guru s3-read-folder "my-bucket" "config/" --json
+
+        aws-vibe-guru s3-read-folder "my-bucket" "data/" --max 50
+
+        aws-vibe-guru s3-read-folder "my-bucket" "files/" --encoding "latin-1"
+    """
+    try:
+        result = read_folder_contents(bucket_name, prefix, encoding, max_files)
+
+        console.print()
+        console.print(Text(f"Reading folder: {prefix}", style="bold green"))
+        console.print(Text(f"Bucket: {result['bucket']}", style="bold blue"))
+        console.print(Text(f"Total files: {result['total_files']}", style="bold blue"))
+        console.print(Text("=" * 80, style="dim"))
+        console.print()
+
+        if result["total_files"] == 0:
+            console.print(Text("No files found in this folder", style="bold yellow"))
+            return
+
+        for file_data in result["files"]:
+            console.print(Text(f"File: {file_data['key']}", style="bold cyan"))
+            console.print(Text("-" * 80, style="dim"))
+
+            if file_data["is_binary"]:
+                console.print(Text("⚠️  Binary file (skipped)", style="yellow"))
+                if "error" in file_data:
+                    console.print(Text(f"Error: {file_data['error']}", style="red"))
+            else:
+                content_to_display = file_data["content"]
+
+                if format_json:
+                    try:
+                        json_data = json.loads(content_to_display)
+                        content_to_display = json.dumps(json_data, indent=2, ensure_ascii=False)
+                    except json.JSONDecodeError:
+                        pass
+
+                console.print(content_to_display)
+
+            console.print()
 
     except ValueError as e:
         console.print(Text(f"Error: {str(e)}", style="bold red"))

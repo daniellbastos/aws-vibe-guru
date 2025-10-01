@@ -1,5 +1,50 @@
 # Release Notes
 
+## [0.1.1] - 2025-10-01
+
+### 🆕 New Features
+
+#### S3 Folder Reading Command
+- **`s3-read-folder`**: New command to read all files from a folder in S3 bucket
+- **Batch File Display**: Shows header with folder path and total files count
+- **Simplified Output**: Lists each file with full path + content in a clean format
+- **JSON Formatting**: Support for `--json` flag to format JSON content with 2-space indentation
+- **Encoding Support**: Configurable text encoding with `--encoding` parameter
+- **Limit Control**: Optional `--max` parameter to limit number of files to read
+- **Binary Detection**: Automatically detects and skips binary files
+- **Error Handling**: Continues reading even if individual files fail
+
+### 🐛 Bug Fixes
+
+#### S3 Pagination Fix
+- **Fixed Critical Pagination Bug**: Resolved issue where `list_bucket_objects` was not paginating correctly through all S3 objects
+- **Root Cause**: The function was using `MaxKeys` incorrectly, causing it to stop after the first page of results
+- **Impact**: Files in subsequent pages were not being found or listed
+- **Solution**: Implemented proper pagination logic that iterates through all pages regardless of total object count
+
+### 🔧 Technical Improvements
+
+#### Unlimited Results by Default
+- **`s3-list-objects`**: Changed default `max_results` from 1000 to unlimited
+- **`s3-read-object`**: Removed 100-object limit when using `--prefix` search
+- **`s3-read-folder`**: Changed default `max_files` from 100 to unlimited
+- **User Control**: Users can still limit results using `--max` parameter when needed
+- **Performance**: Uses S3's optimal page size of 1000 objects per request
+
+#### Pagination Logic
+- **New `list_bucket_objects` Behavior**:
+  - No longer sets `MaxKeys` in API request (uses S3 default of 1000 per page)
+  - Properly iterates through all pages using `ContinuationToken`
+  - Only applies `max_keys` limit after collecting objects
+  - Checks limit both within pages and between pages
+
+### 📚 Documentation Updates
+- Updated help text for all S3 commands to reflect "unlimited" default behavior
+- Added examples for `s3-read-folder` command usage
+- Updated technical documentation with new command details
+
+---
+
 ## [0.0.2] - 2024-12-19
 
 ### 🎯 New Features

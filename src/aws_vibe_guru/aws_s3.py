@@ -41,11 +41,11 @@ def list_buckets():
         raise ValueError(f"Failed to list S3 buckets: {e}") from e
 
 
-def list_bucket_objects(bucket_name, prefix=None, max_keys=1000):
+def list_bucket_objects(bucket_name, prefix=None, max_keys=None):
     try:
         s3_client = create_s3_connection()
 
-        kwargs = {"Bucket": bucket_name, "MaxKeys": max_keys}
+        kwargs = {"Bucket": bucket_name}
 
         if prefix:
             kwargs["Prefix"] = prefix
@@ -71,13 +71,16 @@ def list_bucket_objects(bucket_name, prefix=None, max_keys=1000):
                     }
                 )
 
+                if max_keys and len(objects) >= max_keys:
+                    break
+
+            if max_keys and len(objects) >= max_keys:
+                break
+
             if not response.get("IsTruncated"):
                 break
 
             continuation_token = response.get("NextContinuationToken")
-
-            if len(objects) >= max_keys:
-                break
 
         return {
             "bucket_name": bucket_name,
@@ -150,3 +153,39 @@ def read_object_content(bucket_name, object_key, encoding="utf-8"):
         if e.response["Error"]["Code"] == "NoSuchKey":
             raise ValueError(f"Object '{object_key}' not found in bucket '{bucket_name}'") from e
         raise ValueError(f"Failed to read object content: {e}") from e
+
+
+def read_folder_contents(bucket_name, prefix, encoding="utf-8", max_files=None):
+    try:
+        objects_result = list_bucket_objects(bucket_name, prefix, max_keys=max_files)
+
+        if objects_result["total_objects"] == 0:
+            return {"bucket": bucket_name, "prefix": prefix, "total_files": 0, "files": []}
+
+        files_with_content = []
+
+        for obj in objects_result["objects"]:
+            try:
+                content_result = read_object_content(bucket_name, obj["key"], encoding)
+                files_with_content.append(
+                    {
+                        "key": obj["key"],
+                        "size": content_result["size"],
+                        "is_binary": content_result["is_binary"],
+                        "content": content_result["content"],
+                    }
+                )
+            except Exception as e:
+                files_with_content.append(
+                    {"key": obj["key"], "size": obj["size"], "is_binary": True, "content": None, "error": str(e)}
+                )
+
+        return {
+            "bucket": bucket_name,
+            "prefix": prefix,
+            "total_files": len(files_with_content),
+            "files": files_with_content,
+        }
+
+    except Exception as e:
+        raise ValueError(f"Failed to read folder contents: {e}") from e
