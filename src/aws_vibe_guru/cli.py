@@ -1,6 +1,14 @@
+import json
+
 import typer
 from rich.console import Console
 
+from aws_vibe_guru.aws_s3 import (
+    get_object_info,
+    list_bucket_objects,
+    list_buckets,
+    read_object_content,
+)
 from aws_vibe_guru.aws_sqs import (
     analyze_queue_volume,
     get_queue_attributes,
@@ -283,6 +291,236 @@ def sqs_analyze_volume(
         console.print(Text(f"  - Median Volume: {int(analysis['median_volume']):,} messages"))
         console.print(Text(f"  - Difference from Median: +{int(analysis['median_difference']):,} messages"))
         console.print(Text(f"  - Percentage Above Median: {analysis['median_increase_percent']:.1f}%"))
+
+
+@app.command()
+def s3_list_buckets() -> None:
+    """List all S3 buckets in the AWS account.
+
+    Examples:
+        aws-vibe-guru s3-list-buckets
+    """
+    panel_content = Text("Listing all S3 buckets")
+    panel = Panel(panel_content, "AWS S3 Buckets")
+    console.print(panel)
+
+    buckets = list_buckets()
+
+    if not buckets:
+        console.print(Text("No buckets found", style="bold yellow"))
+        return
+
+    console.print(Text(f"\nTotal buckets: {len(buckets)}", style="bold blue"))
+    console.print()
+
+    for bucket in buckets:
+        bucket_text = f"Name: {bucket['name']}\nCreated: {bucket['creation_date']}"
+        console.print(Text(bucket_text))
+        console.print()
+
+
+@app.command()
+def s3_list_objects(
+    bucket_name: str = typer.Argument(..., help="The name of the bucket to list objects from"),
+    prefix: str = typer.Option(None, "--prefix", "-p", help="Filter objects by prefix (file path)"),
+    max_results: int = typer.Option(1000, "--max", "-m", help="Maximum number of objects to return"),
+    summary: bool = typer.Option(
+        False, "--summary", "-s", help="Show only summary information (bucket, filter, total)"
+    ),
+) -> None:
+    """List all objects in a specific S3 bucket with optional prefix filtering.
+
+    Examples:
+        aws-vibe-guru s3-list-objects "my-bucket"
+
+        aws-vibe-guru s3-list-objects "my-bucket" --prefix "logs/"
+        aws-vibe-guru s3-list-objects "my-bucket" -p "data/2024/"
+
+        aws-vibe-guru s3-list-objects "my-bucket" --max 500
+        aws-vibe-guru s3-list-objects "my-bucket" -m 100
+
+        aws-vibe-guru s3-list-objects "my-bucket" --prefix "reports/" --max 50
+
+        aws-vibe-guru s3-list-objects "my-bucket" --summary
+        aws-vibe-guru s3-list-objects "my-bucket" -s
+    """
+    prefix_text = f" with prefix: {prefix}" if prefix else ""
+    panel_content = Text(f"Listing objects in bucket: {bucket_name}{prefix_text}")
+    panel = Panel(panel_content, "AWS S3 Bucket Objects")
+    console.print(panel)
+
+    try:
+        result = list_bucket_objects(bucket_name, prefix, max_results)
+
+        console.print(Text(f"\nBucket: {result['bucket_name']}", style="bold green"))
+        console.print(Text(f"Filter: {result['prefix']}", style="bold green"))
+        console.print(Text(f"Total objects: {result['total_objects']:,}", style="bold blue"))
+
+        if summary:
+            return
+
+        if result["total_objects"] == 0:
+            console.print(Text("\nNo objects found", style="bold yellow"))
+            return
+
+        console.print(Text("\nObjects:", style="bold"))
+        console.print()
+
+        for obj in result["objects"]:
+            obj_text = (
+                f"Key: {obj['key']}\n"
+                f"Size: {obj['size']:,} bytes ({obj['size_mb']} MB)\n"
+                f"Last Modified: {obj['last_modified']}\n"
+                f"Storage Class: {obj['storage_class']}"
+            )
+            console.print(Text(obj_text))
+            console.print()
+
+    except ValueError as e:
+        console.print(Text(f"Error: {str(e)}", style="bold red"))
+
+
+@app.command()
+def s3_get_object(
+    bucket_name: str = typer.Argument(..., help="The name of the bucket"),
+    object_key: str = typer.Argument(..., help="The key (path) of the object"),
+) -> None:
+    """Get detailed information about a specific object in an S3 bucket.
+
+    Examples:
+        aws-vibe-guru s3-get-object "my-bucket" "file.txt"
+
+        aws-vibe-guru s3-get-object "my-bucket" "logs/2024/app.log"
+
+        aws-vibe-guru s3-get-object "data-bucket" "data/users/export.csv"
+    """
+    panel_content = Text(f"Getting object info: {object_key} from bucket: {bucket_name}")
+    panel = Panel(panel_content, "AWS S3 Object Information")
+    console.print(panel)
+
+    try:
+        obj_info = get_object_info(bucket_name, object_key)
+
+        console.print()
+        console.print(Text("Object Details:", style="bold green"))
+        console.print(Text("─" * 50, style="dim"))
+        console.print()
+
+        console.print(Text(f"Bucket: {obj_info['bucket']}", style="bold blue"))
+        console.print(Text(f"Key: {obj_info['key']}", style="bold blue"))
+        console.print(Text(f"Size: {obj_info['size']:,} bytes ({obj_info['size_mb']} MB)"))
+        console.print(Text(f"Last Modified: {obj_info['last_modified']}"))
+        console.print(Text(f"Content Type: {obj_info['content_type']}"))
+        console.print(Text(f"ETag: {obj_info['etag']}"))
+        console.print(Text(f"Storage Class: {obj_info['storage_class']}"))
+        console.print(Text(f"Version ID: {obj_info['version_id']}"))
+
+        if obj_info["metadata"]:
+            console.print()
+            console.print(Text("Metadata:", style="bold"))
+            for key, value in obj_info["metadata"].items():
+                console.print(Text(f"  {key}: {value}"))
+
+    except ValueError as e:
+        console.print(Text(f"Error: {str(e)}", style="bold red"))
+
+
+@app.command()
+def s3_read_object(
+    bucket_name: str = typer.Argument(..., help="The name of the bucket"),
+    object_key: str = typer.Argument(None, help="The key (path) of the object to read"),
+    prefix: str = typer.Option(None, "--prefix", "-p", help="Search for objects by prefix"),
+    encoding: str = typer.Option("utf-8", "--encoding", "-e", help="Text encoding to use"),
+    format_json: bool = typer.Option(False, "--json", "-j", help="Format JSON content with 2-space indentation"),
+) -> None:
+    """Read and display the content of a file from S3 bucket.
+
+    Examples:
+        aws-vibe-guru s3-read-object "my-bucket" "file.txt"
+
+        aws-vibe-guru s3-read-object "my-bucket" "logs/2024/app.log"
+
+        aws-vibe-guru s3-read-object "my-bucket" --prefix "config/"
+
+        aws-vibe-guru s3-read-object "my-bucket" "file.txt" --encoding "latin-1"
+
+        aws-vibe-guru s3-read-object "my-bucket" "data.json" --json
+    """
+    if not object_key and not prefix:
+        console.print(Text("Error: Either object_key or --prefix must be provided", style="bold red"))
+        return
+
+    if prefix and not object_key:
+        panel_content = Text(f"Searching objects in bucket: {bucket_name} with prefix: {prefix}")
+        panel = Panel(panel_content, "AWS S3 Object Search")
+        console.print(panel)
+
+        try:
+            result = list_bucket_objects(bucket_name, prefix, max_keys=100)
+
+            if result["total_objects"] == 0:
+                console.print(Text(f"\nNo objects found with prefix '{prefix}'", style="bold yellow"))
+                return
+
+            console.print(Text(f"\nFound {result['total_objects']} object(s):", style="bold blue"))
+            console.print()
+
+            if result["total_objects"] == 1:
+                object_key = result["objects"][0]["key"]
+                console.print(Text(f"Reading: {object_key}", style="bold green"))
+                console.print()
+            else:
+                console.print(
+                    Text("Multiple objects found. Please specify the exact object_key:", style="bold yellow")
+                )
+                for obj in result["objects"]:
+                    console.print(Text(f"  - {obj['key']}"))
+                return
+
+        except ValueError as e:
+            console.print(Text(f"Error: {str(e)}", style="bold red"))
+            return
+
+    panel_content = Text(f"Reading object: {object_key} from bucket: {bucket_name}")
+    panel = Panel(panel_content, "AWS S3 Object Content")
+    console.print(panel)
+
+    try:
+        result = read_object_content(bucket_name, object_key, encoding)
+
+        console.print()
+        console.print(Text(f"Bucket: {result['bucket']}", style="bold blue"))
+        console.print(Text(f"Key: {result['key']}", style="bold blue"))
+        console.print(Text(f"Size: {result['size']:,} bytes", style="bold blue"))
+        console.print(Text(f"Content Type: {result['content_type']}"))
+        console.print(Text("─" * 80, style="dim"))
+        console.print()
+
+        if result["is_binary"]:
+            console.print(
+                Text("⚠️  This file appears to be binary and cannot be displayed as text.", style="bold yellow")
+            )
+            console.print(Text(f"File size: {result['size']:,} bytes", style="dim"))
+        else:
+            content_to_display = result["content"]
+
+            if format_json:
+                try:
+                    json_data = json.loads(content_to_display)
+                    content_to_display = json.dumps(json_data, indent=2, ensure_ascii=False)
+                except json.JSONDecodeError:
+                    console.print(
+                        Text(
+                            "⚠️  Warning: --json flag was used but content is not valid JSON. Displaying as-is.",
+                            style="bold yellow",
+                        )
+                    )
+                    console.print()
+
+            console.print(content_to_display)
+
+    except ValueError as e:
+        console.print(Text(f"Error: {str(e)}", style="bold red"))
 
 
 if __name__ == "__main__":
