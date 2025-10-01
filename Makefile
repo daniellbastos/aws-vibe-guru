@@ -59,10 +59,11 @@ release-check:
 		exit 1; \
 	fi
 	@echo "✅ Git status OK"
-	@if git tag | grep -q "v$$(uv run python -c 'import tomli; print(tomli.load(open(\"pyproject.toml\", \"rb\"))[\"project\"][\"version\"])')"; then \
-		echo "✅ Git tag exists for current version"; \
+	@VERSION=$$(grep '^version = ' pyproject.toml | cut -d'"' -f2); \
+	if git tag | grep -q "v$$VERSION"; then \
+		echo "✅ Git tag exists for current version (v$$VERSION)"; \
 	else \
-		echo "❌ Git tag missing for current version"; \
+		echo "❌ Git tag missing for current version (v$$VERSION)"; \
 		exit 1; \
 	fi
 	@echo "✅ All checks passed"
