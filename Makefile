@@ -44,8 +44,43 @@ upload-test:
 upload-pypi:
 	uv run twine upload dist/*
 
-publish-test: build check-dist upload-test
+publish-test: clean build check-dist upload-test
 	@echo "✅ Package published to TestPyPI"
 
-publish: build check-dist upload-pypi
+publish: clean build check-dist upload-pypi
 	@echo "✅ Package published to PyPI"
+
+release-check:
+	@echo "🔍 Checking release requirements..."
+	@if [ -z "$$(git status --porcelain)" ]; then \
+		echo "✅ Working directory is clean"; \
+	else \
+		echo "❌ Working directory has uncommitted changes"; \
+		exit 1; \
+	fi
+	@echo "✅ Git status OK"
+	@if git tag | grep -q "v$$(uv run python -c 'import tomli; print(tomli.load(open(\"pyproject.toml\", \"rb\"))[\"project\"][\"version\"])')"; then \
+		echo "✅ Git tag exists for current version"; \
+	else \
+		echo "❌ Git tag missing for current version"; \
+		exit 1; \
+	fi
+	@echo "✅ All checks passed"
+
+release-test: release-check publish-test
+	@echo ""
+	@echo "🎉 Test release completed successfully!"
+	@echo ""
+	@echo "📦 Test installation:"
+	@echo "   pip install -i https://test.pypi.org/simple/ aws-vibe-guru"
+	@echo ""
+
+release: release-check publish
+	@echo ""
+	@echo "🎉 Release completed successfully!"
+	@echo ""
+	@echo "📦 Installation:"
+	@echo "   pip install aws-vibe-guru"
+	@echo ""
+	@echo "🔗 PyPI: https://pypi.org/project/aws-vibe-guru/"
+	@echo ""

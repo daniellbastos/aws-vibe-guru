@@ -1,5 +1,37 @@
 # Release Notes
 
+## [0.1.2] - 2025-10-01
+
+### 🔧 Development Improvements
+
+#### Enhanced Makefile for PyPI Publishing
+- **`make release-check`**: New command to verify release requirements before publishing
+  - Checks for uncommitted changes
+  - Verifies Git tag exists for current version
+  - Prevents accidental releases with incomplete changes
+- **`make release-test`**: Complete workflow for TestPyPI publishing
+  - Runs all safety checks
+  - Cleans previous builds automatically
+  - Builds, verifies, and uploads to TestPyPI
+  - Shows test installation instructions
+- **`make release`**: Complete workflow for PyPI publishing
+  - Runs all safety checks
+  - Cleans previous builds automatically
+  - Builds, verifies, and uploads to PyPI
+  - Shows installation instructions and PyPI link
+- **Automatic Cleanup**: Both `publish` and `publish-test` now include `clean` step
+- **Better Feedback**: Clear success messages with emojis and actionable instructions
+
+### 📦 Publishing Workflow
+The new release commands provide a safe and streamlined publishing process:
+1. Automatic verification of Git status and tags
+2. Clean build environment
+3. Package validation
+4. Secure upload to PyPI/TestPyPI
+5. Post-publish instructions
+
+---
+
 ## [0.1.1] - 2025-10-01
 
 ### 🆕 New Features
